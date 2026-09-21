@@ -993,7 +993,16 @@ async function callGemini(ingredients, guestCount){
   const gc = guestCount || 1;
   const prompt = `אני בר-מן חובב ויש לי את המרכיבים הבאים: ${ingredients.join(', ')}. הצע לי קוקטייל אחד מנצח שאפשר להכין מהם (אפשר להניח שיש גם קרח, סוכר, מים וסודה בסיסיים), בכמות המתאימה בדיוק ל-${gc} סועדים (הכפילו את הכמויות בהתאם למספר הסועדים). כל הכמויות חייבות להיות במיליליטר (מ"ל) בלבד, לעולם לא באונקיות. החזר תשובה בפורמט הבא בדיוק, בעברית, בלי שום טקסט נוסף:\nשם: <שם הקוקטייל>\nמתכון:\n<רשימת מרכיבים וכמויות במ"ל עבור ${gc} סועדים, שורה לכל מרכיב>\n\nהוראות הכנה:\n<הוראות קצרות וברורות>`;
 
-  let lastError = null;
+function isRetryableGeminiStatus(status){
+  // 404 = this specific model name isn't available for the key; 429 = rate-limited;
+  // 503/502/500 = the model is temporarily overloaded/unavailable on Google's end.
+  // All of these are worth trying a different model candidate for. A 400 (bad request)
+  // or 403 (invalid/unauthorized key) won't be fixed by switching models, so those
+  // still stop immediately and surface the real error.
+  return [404, 429, 500, 502, 503].includes(status);
+}
+
+let lastError = null;
   for(const model of GEMINI_MODEL_CANDIDATES){
     const controller = new AbortController();
     const timeoutId = setTimeout(()=>controller.abort(), 20000); // 20s per model — never hang forever
@@ -1011,11 +1020,8 @@ async function callGemini(ingredients, guestCount){
           const errBody = await resp.json();
           detail = errBody?.error?.message || '';
         }catch(e){}
-        // A 404 usually means this particular model name isn't available for this key —
-        // worth trying the next candidate. Other errors (bad key, quota) won't be fixed
-        // by switching models, so stop right away and surface them.
         lastError = new Error(`שגיאת Gemini (${resp.status})${detail ? ': ' + detail : ''}`);
-        if(resp.status === 404){ continue; }
+        if(isRetryableGeminiStatus(resp.status)){ continue; }
         throw lastError;
       }
       const data = await resp.json();
@@ -1030,8 +1036,10 @@ async function callGemini(ingredients, guestCount){
         lastError = new Error(`הבקשה ל-${model} לא קיבלה מענה בזמן (timeout) — מנסה חלופה...`);
         continue; // timeout is worth retrying with the next model candidate
       }
-      lastError = err;
-      if(!/^שגיאת Gemini \(404\)/.test(err.message || '')) throw err;
+      // Anything reaching here is either the "throw lastError" above (already
+      // determined non-retryable) or a genuine network/fetch exception — either
+      // way, switching models won't help, so stop right away.
+      throw err;
     }
   }
   throw lastError || new Error('כל מודלי ה-AI נכשלו');
