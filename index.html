@@ -26,8 +26,14 @@
     --shadow: 0 10px 28px rgba(0,0,0,.5);
     --border: #3a2c1f;
   }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
+  *{box-sizing:border-box; overflow-wrap:break-word;}
+  html,body{
+    margin:0; padding:0;
+    width:100%;
+    overflow-x:hidden;
+    touch-action: pan-y;
+    overscroll-behavior-x: none;
+  }
   body{
     color: var(--text);
     font-family: 'Assistant', sans-serif;
@@ -194,7 +200,9 @@
     animation: slideup .25s ease; border-top:1px solid var(--border);
   }
   @keyframes slideup{from{transform:translateY(30px); opacity:0;} to{transform:translateY(0); opacity:1;}}
-  .modal-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
+  .modal-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:10px;}
+  .modal-head h2{min-width:0; overflow-wrap:break-word; flex:1;}
+  .modal-head button.x{flex-shrink:0;}
   .modal-head button.x{background:none; border:none; color:var(--text-dim); font-size:22px; cursor:pointer;}
 
   .inv-item{
@@ -227,6 +235,9 @@
     position:fixed; top:16px; left:50%; transform:translateX(-50%); background:#211a15; color:var(--text);
     border:1px solid var(--gold); border-radius:10px; padding:10px 18px; font-size:13px; z-index:200;
     opacity:0; pointer-events:none; transition:opacity .3s; box-shadow: var(--shadow);
+    max-width: calc(100vw - 32px); box-sizing: border-box;
+    display:flex; align-items:center; gap:4px; flex-wrap:wrap; justify-content:center;
+    text-align:center; white-space:normal;
   }
   .toast.show{opacity:1; pointer-events:auto;}
   .rec-card h3{color:var(--gold-bright);}
@@ -272,15 +283,15 @@
       <div class="chip-input" id="mixer-chip-input">
         <input type="text" id="mixer-ingredient-field" placeholder="הקלידו מרכיב ולחצו Enter...">
       </div>
+      <label style="margin-top:14px;">כמות סועדים</label>
+      <input type="number" id="mixer-guest-count" min="1" max="10" step="1" value="1">
       <div class="row" style="margin-top:14px;">
         <button class="btn" id="btn-generate">✨ צור מתכון</button>
       </div>
       <details class="settings" style="margin-top:14px;">
         <summary>הגדרות AI (אופציונלי) ⚙️</summary>
         <p class="muted" style="margin-top:8px;">כדי לקבל הצעות חכמות מ-AI (לא רק מהמאגר המובנה), הוסיפו מפתח API של Gemini. המפתח נשמר רק בדפדפן שלכם, מקומית, ולא נשלח לשום מקום אחר מלבד Google.</p>
-        <label>Gemini API Key</label>
-        <input type="text" id="gemini-key" placeholder="AIza...">
-        <button class="btn secondary small" id="btn-save-key" style="margin-top:8px;">שמור מפתח</button>
+        <div id="gemini-key-section"></div>
         <p class="muted" style="margin-top:6px; font-size:11px;">אפשר להשיג מפתח בחינם ב-aistudio.google.com</p>
       </details>
     </div>
@@ -734,12 +745,52 @@ function renderMixerInventoryPicker(){
 }
 function removeIngredient(idx){ mixerIngredients.splice(idx,1); renderChips(); renderMixerInventoryPicker(); }
 
-document.getElementById('btn-save-key').addEventListener('click', ()=>{
-  DB.geminiKey = document.getElementById('gemini-key').value.trim();
-  saveDB();
-  toast('המפתח נשמר במכשיר שלך');
-});
-document.getElementById('gemini-key').value = DB.geminiKey || '';
+function renderGeminiKeySection(){
+  const box = document.getElementById('gemini-key-section');
+  if(DB.geminiKey){
+    const masked = DB.geminiKey.length > 4 ? '••••' + DB.geminiKey.slice(-4) : '••••';
+    box.innerHTML = `
+      <div class="inv-item" style="padding:8px 0;">
+        <div class="name">🔑 מפתח מחובר: ${masked}</div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button class="btn secondary small" id="btn-change-key">✏️ שנה מפתח</button>
+        <button class="btn danger small" id="btn-remove-key">🗑️ הסר מפתח</button>
+      </div>
+    `;
+    document.getElementById('btn-change-key').addEventListener('click', renderGeminiKeyInput);
+    document.getElementById('btn-remove-key').addEventListener('click', ()=>{
+      DB.geminiKey = '';
+      saveDB();
+      toast('המפתח הוסר');
+      renderGeminiKeySection();
+    });
+  } else {
+    renderGeminiKeyInput();
+  }
+}
+function renderGeminiKeyInput(){
+  const box = document.getElementById('gemini-key-section');
+  box.innerHTML = `
+    <label>Gemini API Key</label>
+    <input type="password" id="gemini-key" placeholder="AIza..." autocomplete="off">
+    <div class="row" style="margin-top:8px;">
+      <button class="btn secondary small" id="btn-save-key">שמור מפתח</button>
+      ${DB.geminiKey ? '<button class="btn secondary small" id="btn-cancel-key">ביטול</button>' : ''}
+    </div>
+  `;
+  document.getElementById('btn-save-key').addEventListener('click', ()=>{
+    const val = document.getElementById('gemini-key').value.trim();
+    if(!val){ toast('הקלידו מפתח, או לחצו הסר מפתח כדי לנקות'); return; }
+    DB.geminiKey = val;
+    saveDB();
+    toast('המפתח נשמר במכשיר שלך 🔒');
+    renderGeminiKeySection();
+  });
+  const cancelBtn = document.getElementById('btn-cancel-key');
+  if(cancelBtn) cancelBtn.addEventListener('click', renderGeminiKeySection);
+}
+renderGeminiKeySection();
 
 // small built-in cocktail knowledge base for offline suggestions (all measurements in ml)
 const KB = [
@@ -816,24 +867,36 @@ function guessIllustration(name, ingredients){
 
 document.getElementById('btn-generate').addEventListener('click', async ()=>{
   if(mixerIngredients.length===0){ toast('הוסיפו כמה מרכיבים קודם'); return; }
+  let guestCount = parseInt(document.getElementById('mixer-guest-count').value, 10);
+  if(isNaN(guestCount) || guestCount < 1) guestCount = 1;
+  if(guestCount > 10) guestCount = 10;
+  document.getElementById('mixer-guest-count').value = guestCount;
+
   const resultBox = document.getElementById('mixer-result');
   resultBox.innerHTML = `<div class="card">⏳ מכינים הצעה...</div>`;
 
   if(DB.geminiKey){
     try{
-      const suggestion = await callGemini(mixerIngredients);
-      renderMixerResult(suggestion.name, suggestion.ing, suggestion.instr, true);
+      const suggestion = await callGemini(mixerIngredients, guestCount);
+      renderMixerResult(suggestion.name, suggestion.ing, suggestion.instr, true, guestCount);
       return;
     }catch(err){
       console.error(err);
-      toast('קריאת ה-AI נכשלה, מציג הצעה מהמאגר המקומי');
+      toast((err.message || 'קריאת ה-AI נכשלה') + ' — מציג הצעה מהמאגר המקומי');
     }
   }
-  const local = localSuggest(mixerIngredients);
-  renderMixerResult(local.name, local.ing, local.instr, false);
+  const local = localSuggest(mixerIngredients, guestCount);
+  renderMixerResult(local.name, local.ing, local.instr, false, guestCount);
 });
 
-function localSuggest(have){
+function scaleMlAmounts(text, factor){
+  if(!factor || factor===1) return text;
+  return text.replace(/(\d+(?:\.\d+)?)(\s*מ"ל)/g, (m, num, unit) => {
+    const scaled = Math.round(parseFloat(num) * factor);
+    return scaled + unit;
+  });
+}
+function localSuggest(have, guestCount){
   const haveLower = have.map(x=>x.toLowerCase());
   let best=null, bestScore=-1;
   KB.forEach(c=>{
@@ -842,21 +905,24 @@ function localSuggest(have){
     if(score>bestScore){ bestScore=score; best=c; }
   });
   if(!best) best = KB[0];
-  return { name: best.name, ing: best.ing, instr: best.instr };
+  const factor = guestCount || 1;
+  const instr = scaleMlAmounts(best.instr, factor);
+  return { name: best.name, ing: best.ing, instr };
 }
 
 let currentMixerSuggestion = null;
 let pendingMixerImage = null;
-function renderMixerResult(name, ing, instr, fromAI){
+function renderMixerResult(name, ing, instr, fromAI, guestCount){
   currentMixerSuggestion = { name, instr };
   pendingMixerImage = null;
   const illus = guessIllustration(name, ing);
+  const gc = guestCount || 1;
   document.getElementById('mixer-result').innerHTML = `
     <div class="card rec-card">
       <div style="display:flex; gap:14px; align-items:flex-start;">
         ${glassSVG(illus.glass, illus.color)}
         <div style="flex:1; min-width:0;">
-          <p class="muted">${fromAI ? '✨ הצעה מבוססת AI' : '💡 הצעה מהמאגר המקומי (אין מפתח AI מוגדר)'}</p>
+          <p class="muted">${fromAI ? '✨ הצעה מבוססת AI' : '💡 הצעה מהמאגר המקומי (אין מפתח AI מוגדר)'} · ל-${gc} ${gc===1?'סועד':'סועדים'}</p>
           <h3 style="margin-bottom:0;">${escapeHtml(name)}</h3>
         </div>
       </div>
@@ -892,15 +958,23 @@ function saveMixerResult(){
   toast('נשמר להקוקטיילים שלי 🍸');
 }
 
-async function callGemini(ingredients){
+async function callGemini(ingredients, guestCount){
   const key = DB.geminiKey;
-  const prompt = `אני בר-מן חובב ויש לי את המרכיבים הבאים: ${ingredients.join(', ')}. הצע לי קוקטייל אחד מנצח שאפשר להכין מהם (אפשר להניח שיש גם קרח, סוכר, מים וסודה בסיסיים). כל הכמויות חייבות להיות במיליליטר (מ"ל) בלבד, לעולם לא באונקיות. החזר תשובה בפורמט הבא בדיוק, בעברית, בלי שום טקסט נוסף:\nשם: <שם הקוקטייל>\nמתכון:\n<רשימת מרכיבים וכמויות במ"ל, שורה לכל מרכיב>\n\nהוראות הכנה:\n<הוראות קצרות וברורות>`;
-  const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`, {
+  const gc = guestCount || 1;
+  const prompt = `אני בר-מן חובב ויש לי את המרכיבים הבאים: ${ingredients.join(', ')}. הצע לי קוקטייל אחד מנצח שאפשר להכין מהם (אפשר להניח שיש גם קרח, סוכר, מים וסודה בסיסיים), בכמות המתאימה בדיוק ל-${gc} סועדים (הכפילו את הכמויות בהתאם למספר הסועדים). כל הכמויות חייבות להיות במיליליטר (מ"ל) בלבד, לעולם לא באונקיות. החזר תשובה בפורמט הבא בדיוק, בעברית, בלי שום טקסט נוסף:\nשם: <שם הקוקטייל>\nמתכון:\n<רשימת מרכיבים וכמויות במ"ל עבור ${gc} סועדים, שורה לכל מרכיב>\n\nהוראות הכנה:\n<הוראות קצרות וברורות>`;
+  const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`, {
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ contents:[{ parts:[{ text: prompt }] }] })
   });
-  if(!resp.ok) throw new Error('API error ' + resp.status);
+  if(!resp.ok){
+    let detail = '';
+    try{
+      const errBody = await resp.json();
+      detail = errBody?.error?.message || '';
+    }catch(e){}
+    throw new Error(`שגיאת Gemini (${resp.status})${detail ? ': ' + detail : ''}`);
+  }
   const data = await resp.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   const nameMatch = text.match(/שם:\s*(.+)/);
@@ -1007,7 +1081,7 @@ function showImportConfirm(parsed){
       removedDefaults: parsed.removedDefaults || []
     };
     saveDB();
-    document.getElementById('gemini-key').value = DB.geminiKey || '';
+    renderGeminiKeySection();
     document.getElementById('backup-overlay').classList.remove('active');
     restoreBackupModal();
     toast('הגיבוי יובא בהצלחה 🎉');
