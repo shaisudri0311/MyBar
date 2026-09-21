@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyBar 🍸</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Assistant:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0d0a08;
+    --bg2: #1a140f;
+    --card: #211a15;
+    --card-hi: #2a2119;
+    --wood: #170f0a;
+    --gold: #e0b568;
+    --gold-bright: #f3cf8a;
+    --gold-soft: #e0b56826;
+    --copper: #b87e4d;
+    --text: #f3ecdf;
+    --text-dim: #ad9f8e;
+    --danger: #e0776b;
+    --ok: #7bc99a;
+    --warn: #d9b45f;
+    --radius: 18px;
+    --shadow: 0 10px 28px rgba(0,0,0,.5);
+    --border: #3a2c1f;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    color: var(--text);
+    font-family: 'Assistant', sans-serif;
+    min-height: 100vh;
+    padding-bottom: 92px;
+    position: relative;
+    background-color: var(--bg);
+    /* bokeh bar-lights + warm wood-toned atmosphere, all self-contained (no external images) */
+    background-image:
+      radial-gradient(circle at 12% 8%,  rgba(224,181,104,.32) 0%, rgba(224,181,104,0) 9%),
+      radial-gradient(circle at 32% 4%,  rgba(184,126,77,.26) 0%, rgba(184,126,77,0) 7%),
+      radial-gradient(circle at 78% 10%, rgba(224,181,104,.22) 0%, rgba(224,181,104,0) 10%),
+      radial-gradient(circle at 92% 22%, rgba(184,126,77,.20) 0%, rgba(184,126,77,0) 8%),
+      radial-gradient(circle at 55% 2%,  rgba(243,207,138,.18) 0%, rgba(243,207,138,0) 6%),
+      radial-gradient(circle at 8% 45%,  rgba(120,70,40,.30) 0%, rgba(120,70,40,0) 30%),
+      radial-gradient(circle at 95% 60%, rgba(90,50,30,.28) 0%, rgba(90,50,30,0) 35%),
+      linear-gradient(180deg, #17110c 0%, #0d0a08 45%, #0a0807 100%);
+    background-attachment: fixed, fixed, fixed, fixed, fixed, fixed, fixed, fixed;
+  }
+  /* subtle film-grain overlay for texture/mood */
+  body::before{
+    content:'';
+    position: fixed; inset:0; pointer-events:none; z-index:1; opacity:.05; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+  main, .app-header, nav.tabbar{ position:relative; z-index:2; }
+
+  h1,h2,h3{font-family:'Playfair Display', serif; margin: 0 0 8px;}
+  .app-header{
+    padding: 26px 20px 18px;
+    text-align:center;
+  }
+  .app-header h1{
+    font-size: 32px;
+    color: var(--gold-bright);
+    letter-spacing: 1px;
+    text-shadow: 0 0 18px rgba(224,181,104,.35);
+  }
+  .app-header p{margin:0; color:var(--text-dim); font-size:13px; letter-spacing:.5px;}
+  main{
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 0 16px 20px;
+  }
+  section.tab{display:none; animation: fade .3s ease;}
+  section.tab.active{display:block;}
+  @keyframes fade{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+  @keyframes pop{0%{transform:scale(.94); opacity:0;} 100%{transform:scale(1); opacity:1;}}
+
+  nav.tabbar{
+    position:fixed; bottom:0; left:0; right:0;
+    display:flex; justify-content:space-around;
+    background: rgba(23,17,12,.94);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    padding: 8px 4px calc(8px + env(safe-area-inset-bottom,0px));
+    z-index: 50;
+  }
+  nav.tabbar button{
+    background:none; border:none; color: var(--text-dim);
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    font-family:'Assistant',sans-serif; font-size:10px; font-weight:600;
+    padding:6px 2px; cursor:pointer; flex:1; min-width:0;
+    transition: color .15s, transform .15s;
+  }
+  nav.tabbar button .ico{font-size:18px; transition: transform .15s;}
+  nav.tabbar button.active{color: var(--gold-bright);}
+  nav.tabbar button.active .ico{ transform: translateY(-2px); filter: drop-shadow(0 0 6px rgba(224,181,104,.6)); }
+  nav.tabbar button:active{ transform: scale(.92); }
+
+  .card{
+    background: linear-gradient(155deg, var(--card-hi), var(--card));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px;
+    margin-bottom: 16px;
+    animation: pop .25s ease;
+  }
+  .empty{
+    text-align:center; color: var(--text-dim); padding: 44px 10px;
+  }
+  .empty .ico{font-size:42px; display:block; margin-bottom:10px; filter: drop-shadow(0 0 10px rgba(224,181,104,.25));}
+
+  .hero-img{
+    width:100%; aspect-ratio: 4/3; object-fit:cover;
+    border-radius: 14px; margin-bottom:12px; display:block;
+    background: #140f0b;
+    box-shadow: inset 0 0 40px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.4);
+  }
+  .tag{
+    display:inline-block; background: var(--gold-soft); color: var(--gold-bright);
+    border-radius: 20px; padding: 4px 12px; font-size: 12px; margin: 2px 4px 2px 0;
+    border: 1px solid rgba(224,181,104,.25);
+  }
+  .btn{
+    background: linear-gradient(135deg,var(--gold-bright),var(--copper));
+    color: #241505; border:none; border-radius: 12px;
+    padding: 13px 18px; font-weight:700; font-size:15px;
+    cursor:pointer; width:100%; font-family:'Assistant',sans-serif;
+    box-shadow: 0 4px 14px rgba(224,181,104,.25);
+    transition: transform .1s, box-shadow .15s;
+  }
+  .btn:active{ transform: scale(.97); box-shadow: 0 2px 8px rgba(224,181,104,.2); }
+  .btn.secondary{
+    background: #2a221a; color: var(--text); border: 1px solid var(--border);
+    box-shadow:none;
+  }
+  .btn.secondary:active{ transform: scale(.97); }
+  .btn.danger{ background:#2e1a17; color: var(--danger); border:1px solid #4a2a26; box-shadow:none;}
+  .btn.small{ width:auto; padding:9px 14px; font-size:13px;}
+  .row{display:flex; gap:10px;}
+  .row > *{flex:1;}
+
+  label{display:block; font-size:13px; color: var(--text-dim); margin: 10px 0 5px;}
+  input[type=text], input[type=number], textarea, select{
+    width:100%; background:#12161f; border:1px solid #2c3448; color:var(--text);
+    border-radius:10px; padding:10px 12px; font-family:'Assistant',sans-serif; font-size:14px;
+  }
+  textarea{min-height:80px; resize:vertical;}
+  input[type=file]{ color: var(--text-dim); font-size: 13px;}
+
+  .chip-input{
+    display:flex; flex-wrap:wrap; gap:6px; background:#150f0a; border:1px solid var(--border);
+    border-radius:10px; padding:8px; min-height:44px;
+  }
+  .chip{
+    background: var(--gold-soft); color: var(--gold-bright); border-radius:20px;
+    padding: 5px 10px 5px 6px; font-size:13px; display:flex; align-items:center; gap:6px;
+    border: 1px solid rgba(224,181,104,.25); animation: pop .15s ease;
+  }
+  .chip button{background:none; border:none; color:var(--gold-bright); cursor:pointer; font-size:14px; padding:0;}
+  .chip-input input{
+    border:none; background:none; flex:1; min-width:80px; padding:6px; color:var(--text);
+  }
+  .chip-suggestions{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+  .chip-suggestions button{
+    background:#180f08; border:1px dashed var(--border); color:var(--text-dim);
+    border-radius:20px; padding:5px 12px; font-size:12px; cursor:pointer; font-family:'Assistant';
+    transition: all .15s;
+  }
+  .chip-suggestions button.active{
+    background: var(--gold-soft); border: 1px solid var(--gold); color: var(--gold-bright); font-weight:600;
+  }
+
+  .coc-item{
+    display:flex; gap:12px; align-items:center; cursor:pointer; position:relative;
+  }
+  .coc-item img{width:64px; height:64px; border-radius:10px; object-fit:cover; background:#140f0b; flex-shrink:0;}
+  .coc-item .noimg{width:64px; height:64px; border-radius:10px; background:#180f08; display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0;}
+  .coc-item .meta{flex:1; min-width:0;}
+  .coc-item .meta h3{font-size:16px; margin-bottom:2px;}
+  .coc-item .meta .sub{font-size:12px; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .star-btn{background:none; border:none; font-size:20px; cursor:pointer; padding:4px; line-height:1; flex-shrink:0;}
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:100;
+    display:none; align-items:flex-end; justify-content:center;
+  }
+  .modal-overlay.active{display:flex;}
+  .modal{
+    background: linear-gradient(160deg,#231a13,#171009); border-radius: 22px 22px 0 0; width:100%; max-width:620px;
+    max-height:90vh; overflow-y:auto; padding: 18px 18px calc(18px + env(safe-area-inset-bottom,0px));
+    animation: slideup .25s ease; border-top:1px solid var(--border);
+  }
+  @keyframes slideup{from{transform:translateY(30px); opacity:0;} to{transform:translateY(0); opacity:1;}}
+  .modal-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
+  .modal-head button.x{background:none; border:none; color:var(--text-dim); font-size:22px; cursor:pointer;}
+
+  .inv-item{
+    display:flex; flex-direction:column; gap:8px;
+    padding: 11px 0; border-bottom:1px solid var(--border);
+  }
+  .inv-item:last-child{border-bottom:none;}
+  .inv-item .top-row{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .inv-item .name{font-weight:600; font-size:14px;}
+  .status-select{display:flex; gap:4px; flex-wrap:wrap;}
+  .status-btn{
+    border:1px solid var(--border); background:#150f0a; color:var(--text-dim);
+    border-radius:8px; padding:4px 8px; font-size:11px; cursor:pointer; font-family:'Assistant';
+  }
+  .status-btn.active[data-s="new"]{background:#3f7a5a; color:#fff; border-color:#3f7a5a;}
+  .status-btn.active[data-s="75"]{background:#4f8a4f; color:#fff; border-color:#4f8a4f;}
+  .status-btn.active[data-s="50"]{background:var(--warn); color:#241505; border-color:var(--warn);}
+  .status-btn.active[data-s="25"]{background:#b0763f; color:#fff; border-color:#b0763f;}
+  .status-btn.active[data-s="missing"]{background:var(--danger); color:#fff; border-color:var(--danger);}
+
+  .section-title{display:flex; justify-content:space-between; align-items:center; margin: 18px 0 8px;}
+  .section-title h2{font-size:19px; color: var(--gold-bright);}
+  .muted{color:var(--text-dim); font-size:13px;}
+  .divider{height:1px; background:var(--border); margin: 14px 0;}
+  .fab-add{position:fixed; bottom:82px; left:16px; z-index:40; width:54px; height:54px; border-radius:50%;
+    background: linear-gradient(135deg,var(--gold-bright),var(--copper)); color:#241505; border:none; font-size:27px;
+    box-shadow: 0 6px 20px rgba(224,181,104,.4); cursor:pointer; transition: transform .12s;}
+  .fab-add:active{ transform: scale(.92); }
+  .toast{
+    position:fixed; top:16px; left:50%; transform:translateX(-50%); background:#211a15; color:var(--text);
+    border:1px solid var(--gold); border-radius:10px; padding:10px 18px; font-size:13px; z-index:200;
+    opacity:0; pointer-events:none; transition:opacity .3s; box-shadow: var(--shadow);
+  }
+  .toast.show{opacity:1; pointer-events:auto;}
+  .rec-card h3{color:var(--gold-bright);}
+  .rec-card .instr{white-space:pre-wrap; line-height:1.6; font-size:14px;}
+  .missing-badge{background:var(--danger); color:#fff; font-size:11px; border-radius:10px; padding:2px 8px; margin-right:6px;}
+  details.settings summary{cursor:pointer; color:var(--text-dim); font-size:13px;}
+  .imgpick-preview{width:100%; max-height:220px; object-fit:cover; border-radius:10px; margin-top:8px; display:none;}
+  .search-box{margin-bottom:14px;}
+  .cotd-badge{font-size:11px; color:var(--gold-bright); background:var(--gold-soft); border-radius:10px; padding:3px 10px; display:inline-block; margin-bottom:8px;}
+  .glass-divider{ text-align:center; color: var(--border); margin: 6px 0 16px; font-size:11px; letter-spacing:3px; }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>🍸 MyBar</h1>
+  <p>הבר האישי שלך</p>
+  <button id="btn-backup" title="גיבוי ושחזור" style="position:absolute; left:14px; top:26px; background:none; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;">⚙️</button>
+</div>
+
+<main>
+
+  <!-- ===== HOME ===== -->
+  <section class="tab active" id="tab-home">
+    <div id="home-content"></div>
+  </section>
+
+  <!-- ===== MY COCKTAILS ===== -->
+  <section class="tab" id="tab-list">
+    <div class="section-title"><h2>הקוקטיילים שלי</h2><span class="muted" id="coc-count"></span></div>
+    <input type="text" id="coc-search" class="search-box" placeholder="🔍 חיפוש קוקטייל או מרכיב...">
+    <div id="coc-list"></div>
+  </section>
+
+  <!-- ===== MIXER ===== -->
+  <section class="tab" id="tab-mixer">
+    <div class="card">
+      <h2>🧪 מיקסר</h2>
+      <p class="muted">בחרו מה יש לכם במלאי ולחצו על "צור מתכון".</p>
+      <label>מה יש לי (מהמלאי שלי)</label>
+      <div class="chip-suggestions" id="mixer-inventory-picker"></div>
+      <label style="margin-top:14px;">מרכיב חד-פעמי שאינו במלאי (אופציונלי)</label>
+      <div class="chip-input" id="mixer-chip-input">
+        <input type="text" id="mixer-ingredient-field" placeholder="הקלידו מרכיב ולחצו Enter...">
+      </div>
+      <div class="row" style="margin-top:14px;">
+        <button class="btn" id="btn-generate">✨ צור מתכון</button>
+      </div>
+      <details class="settings" style="margin-top:14px;">
+        <summary>הגדרות AI (אופציונלי) ⚙️</summary>
+        <p class="muted" style="margin-top:8px;">כדי לקבל הצעות חכמות מ-AI (לא רק מהמאגר המובנה), הוסיפו מפתח API של Gemini. המפתח נשמר רק בדפדפן שלכם, מקומית, ולא נשלח לשום מקום אחר מלבד Google.</p>
+        <label>Gemini API Key</label>
+        <input type="text" id="gemini-key" placeholder="AIza...">
+        <button class="btn secondary small" id="btn-save-key" style="margin-top:8px;">שמור מפתח</button>
+        <p class="muted" style="margin-top:6px; font-size:11px;">אפשר להשיג מפתח בחינם ב-aistudio.google.com</p>
+      </details>
+    </div>
+    <div id="mixer-result"></div>
+  </section>
+
+  <!-- ===== INVENTORY ===== -->
+  <section class="tab" id="tab-inventory">
+    <div class="section-title"><h2>📦 מלאי</h2></div>
+    <div class="card" style="padding:10px 16px;">
+      <div class="row" style="gap:6px;">
+        <input type="text" id="inv-new-name" placeholder="הוסיפו פריט למלאי...">
+        <button class="btn small" id="btn-inv-add" style="width:auto;">הוסף</button>
+      </div>
+    </div>
+    <div class="card" id="inv-list"></div>
+    <div class="section-title"><h2 style="color:var(--danger); font-size:16px;">🛒 רשימת קניות</h2></div>
+    <div class="card" id="inv-shopping"></div>
+  </section>
+
+  <!-- ===== FAVORITES ===== -->
+  <section class="tab" id="tab-favorites">
+    <div class="section-title"><h2>⭐ מועדפים</h2></div>
+    <div id="fav-list"></div>
+  </section>
+
+</main>
+
+<button class="fab-add" id="fab-add" title="קוקטייל חדש">＋</button>
+
+<nav class="tabbar">
+  <button data-tab="tab-home" class="active"><span class="ico">🏠</span>בית</button>
+  <button data-tab="tab-list"><span class="ico">📖</span>הקוקטיילים</button>
+  <button data-tab="tab-favorites"><span class="ico">⭐</span>מועדפים</button>
+  <button data-tab="tab-mixer"><span class="ico">🧪</span>מיקסר</button>
+  <button data-tab="tab-inventory"><span class="ico">📦</span>מלאי</button>
+</nav>
+
+<!-- Modal: add/edit cocktail -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modal-title">קוקטייל חדש</h2>
+      <button class="x" id="modal-close">✕</button>
+    </div>
+    <label>שם הקוקטייל</label>
+    <input type="text" id="f-name" placeholder="למשל: Old Fashioned">
+    <label>תמונה</label>
+    <input type="file" id="f-image" accept="image/*">
+    <img class="imgpick-preview" id="f-image-preview">
+    <label>מרכיבים והוראות הכנה</label>
+    <p class="muted" style="margin:2px 0 6px;">אפשר להדביק כאן ישירות את מה שג'מיני / קלוד נתן לך.</p>
+    <textarea id="f-recipe" placeholder="לדוגמה:&#10;2 עוז בורבון&#10;1 קובית סוכר&#10;2 טפטופי אנגוסטורה&#10;&#10;הוראות: ..." style="min-height:160px;"></textarea>
+    <div class="row" style="margin-top:14px;">
+      <button class="btn secondary" id="btn-delete" style="display:none;">מחק</button>
+      <button class="btn" id="btn-save-cocktail">שמור</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: view cocktail -->
+<div class="modal-overlay" id="view-overlay">
+  <div class="modal" id="view-modal-content"></div>
+</div>
+
+<!-- Modal: backup -->
+<div class="modal-overlay" id="backup-overlay">
+  <div class="modal">
+    <div class="modal-head"><h2>⚙️ גיבוי ושחזור</h2><button class="x" id="backup-close">✕</button></div>
+    <p class="muted">כל הנתונים שלך (מתכונים, תמונות ומלאי) שמורים רק בדפדפן הזה. מומלץ לגבות מדי פעם לקובץ, כדי שתוכל לשחזר אם תמחק היסטוריה או תעבור מכשיר.</p>
+    <div class="row" style="margin-top:14px;">
+      <button class="btn secondary" id="btn-export">⬇️ ייצוא גיבוי לקובץ</button>
+      <button class="btn secondary" id="btn-import">⬆️ ייבוא גיבוי מקובץ</button>
+    </div>
+    <input type="file" id="import-file-input" accept="application/json" style="display:none;">
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========================= DATA LAYER ========================= */
+const DB_KEY = 'mybar_data_v1';
+function loadDB(){
+  try{
+    const raw = localStorage.getItem(DB_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(!parsed.removedDefaults) parsed.removedDefaults = [];
+      return parsed;
+    }
+  }catch(e){}
+  return { cocktails: [], inventory: [], lastId: null, geminiKey: '', removedDefaults: [] };
+}
+function saveDB(){ try{ localStorage.setItem(DB_KEY, JSON.stringify(DB)); }catch(e){ toast('שגיאה בשמירה - אולי אין מקום. נסו תמונה קטנה יותר.'); } }
+let DB = loadDB();
+
+let toastHideTimer = null;
+function toast(msg, actionLabel, actionFn){
+  const t = document.getElementById('toast');
+  if(toastHideTimer) clearTimeout(toastHideTimer);
+  t.innerHTML = '';
+  t.appendChild(document.createTextNode(msg));
+  if(actionLabel && actionFn){
+    const btn = document.createElement('button');
+    btn.textContent = actionLabel;
+    btn.style.cssText = 'margin-right:10px; background:none; border:none; color:var(--gold-bright); font-weight:700; text-decoration:underline; cursor:pointer; font-family:Assistant,sans-serif; font-size:13px;';
+    btn.addEventListener('click', ()=>{ t.classList.remove('show'); actionFn(); });
+    t.appendChild(btn);
+  }
+  t.classList.add('show');
+  toastHideTimer = setTimeout(()=>t.classList.remove('show'), actionLabel ? 4500 : 2200);
+}
+
+/* ========================= TABS ========================= */
+document.querySelectorAll('nav.tabbar button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav.tabbar button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('section.tab').forEach(s=>s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='tab-home') renderHome();
+    if(btn.dataset.tab==='tab-list') renderList();
+    if(btn.dataset.tab==='tab-favorites') renderFavorites();
+    if(btn.dataset.tab==='tab-mixer') renderMixerInventoryPicker();
+    if(btn.dataset.tab==='tab-inventory') renderInventory();
+  });
+});
+
+/* ========================= HOME ========================= */
+function pickCocktailOfTheDay(){
+  // deterministic pick for the day, favorites first if any exist
+  const pool = DB.cocktails.filter(c=>c.favorite).length ? DB.cocktails.filter(c=>c.favorite) : DB.cocktails;
+  if(pool.length===0) return null;
+  const dayNum = Math.floor(Date.now()/86400000);
+  return pool[dayNum % pool.length];
+}
+function renderHome(){
+  const el = document.getElementById('home-content');
+  const last = DB.cocktails.find(c=>c.id===DB.lastId) || DB.cocktails[DB.cocktails.length-1];
+  if(!last){
+    el.innerHTML = `<div class="empty"><span class="ico">🍹</span>עדיין לא הוספת קוקטיילים.<br>לחצו על + כדי להוסיף את הראשון!</div>`;
+    return;
+  }
+  const cotd = pickCocktailOfTheDay();
+  const favCount = DB.cocktails.filter(c=>c.favorite).length;
+  el.innerHTML = `
+    <div class="card">
+      <p class="muted" style="margin-bottom:10px;">הקוקטייל האחרון שלך</p>
+      ${last.image ? `<img class="hero-img" src="${last.image}">` : ''}
+      <h2>${escapeHtml(last.name)} ${last.favorite ? '⭐' : ''}</h2>
+      <p class="muted">${new Date(last.date).toLocaleDateString('he-IL')}</p>
+      <div class="divider"></div>
+      <div class="instr" style="white-space:pre-wrap; font-size:14px; line-height:1.6;">${escapeHtml(last.recipe)}</div>
+      <div class="row" style="margin-top:14px;">
+        <button class="btn secondary" onclick="openView('${last.id}')">צפייה מלאה</button>
+        <button class="btn secondary" onclick="openEdit('${last.id}')">עריכה</button>
+      </div>
+    </div>
+    ${cotd && cotd.id!==last.id ? `
+    <div class="section-title"><h2 style="font-size:16px;">🌙 הצעה להיום</h2></div>
+    <div class="card" onclick="openView('${cotd.id}')" style="cursor:pointer;">
+      <span class="cotd-badge">${favCount ? 'מהמועדפים שלך' : 'מהמאגר שלך'}</span>
+      <h3>${escapeHtml(cotd.name)}</h3>
+      <p class="muted">${escapeHtml((cotd.recipe||'').split('\\n')[0]||'')}</p>
+    </div>` : ''}
+    <div class="section-title"><h2 style="font-size:16px;">סטטיסטיקה</h2></div>
+    <div class="card">
+      <p>🍸 סה"כ קוקטיילים במאגר: <b>${DB.cocktails.length}</b></p>
+      <p>⭐ מועדפים: <b>${favCount}</b></p>
+    </div>
+  `;
+}
+
+/* ========================= LIST ========================= */
+function cocktailCardHtml(c){
+  return `
+    <div class="card coc-item">
+      <div style="flex:1; display:flex; gap:12px; align-items:center; min-width:0; cursor:pointer;" onclick="openView('${c.id}')">
+        ${c.image ? `<img src="${c.image}">` : `<div class="noimg">🍹</div>`}
+        <div class="meta">
+          <h3>${escapeHtml(c.name)}</h3>
+          <div class="sub">${escapeHtml((c.recipe||'').split('\\n')[0]||'')}</div>
+          <div class="sub">${new Date(c.date).toLocaleDateString('he-IL')}</div>
+        </div>
+      </div>
+      <button class="star-btn" data-id="${c.id}" title="הוסף/הסר ממועדפים">${c.favorite ? '⭐' : '☆'}</button>
+    </div>
+  `;
+}
+function bindStarButtons(container, afterToggle){
+  container.querySelectorAll('.star-btn').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{ e.stopPropagation(); toggleFavorite(btn.dataset.id); afterToggle(); });
+  });
+}
+function renderList(){
+  const list = document.getElementById('coc-list');
+  document.getElementById('coc-count').textContent = DB.cocktails.length + ' מתכונים';
+  if(DB.cocktails.length===0){
+    list.innerHTML = `<div class="empty"><span class="ico">📖</span>אין עדיין מתכונים שמורים.</div>`;
+    return;
+  }
+  const q = (document.getElementById('coc-search').value || '').trim().toLowerCase();
+  let filtered = [...DB.cocktails];
+  if(q){
+    filtered = filtered.filter(c =>
+      c.name.toLowerCase().includes(q) || (c.recipe||'').toLowerCase().includes(q)
+    );
+  }
+  filtered.sort((a,b)=> (b.favorite?1:0)-(a.favorite?1:0) || new Date(b.date)-new Date(a.date));
+  if(filtered.length===0){
+    list.innerHTML = `<div class="empty"><span class="ico">🔍</span>לא נמצאו קוקטיילים תואמים.</div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(cocktailCardHtml).join('');
+  bindStarButtons(list, ()=>{ renderList(); });
+}
+function renderFavorites(){
+  const box = document.getElementById('fav-list');
+  const favs = DB.cocktails.filter(c=>c.favorite).sort((a,b)=> new Date(b.date)-new Date(a.date));
+  if(favs.length===0){
+    box.innerHTML = `<div class="empty"><span class="ico">⭐</span>עדיין לא סימנת מועדפים.<br>לחצו על ה-☆ ברשימת הקוקטיילים כדי להוסיף.</div>`;
+    return;
+  }
+  box.innerHTML = favs.map(cocktailCardHtml).join('');
+  bindStarButtons(box, ()=>{ renderFavorites(); });
+}
+function toggleFavorite(id){
+  const c = DB.cocktails.find(x=>x.id===id);
+  if(!c) return;
+  c.favorite = !c.favorite;
+  saveDB();
+  renderList();
+}
+document.getElementById('coc-search').addEventListener('input', renderList);
+
+function guestLogHtml(c){
+  const log = (c.guestLog || []).slice().sort((a,b)=> new Date(b.date) - new Date(a.date));
+  const entries = log.length===0
+    ? `<p class="muted" style="margin:4px 0 0;">עדיין לא סימנת מי שתה את זה.</p>`
+    : log.map((entry) => {
+        const realIdx = c.guestLog.indexOf(entry);
+        const dateStr = entry.date ? new Date(entry.date).toLocaleDateString('he-IL') : '';
+        return `<div class="inv-item" style="align-items:flex-start;">
+          <div>
+            <div class="name">${escapeHtml((entry.guests||[]).join(', '))}</div>
+            <div class="muted" style="font-size:11px;">${dateStr}</div>
+          </div>
+          <button class="star-btn guest-remove-btn" data-idx="${realIdx}" title="הסר">🗑️</button>
+        </div>`;
+      }).join('');
+  const today = new Date().toISOString().slice(0,10);
+  return `
+    <div class="divider"></div>
+    <h3 style="font-size:16px;">🍻 מי שתה את זה</h3>
+    <div id="guest-log-entries">${entries}</div>
+    <div class="row" style="margin-top:10px; gap:8px;">
+      <input type="text" id="guest-names-input" placeholder="שמות (מופרדים בפסיק)" style="flex:2;">
+      <input type="date" id="guest-date-input" value="${today}" style="flex:1;">
+    </div>
+    <button class="btn secondary small" id="btn-add-guest" style="margin-top:8px;">➕ הוסף רישום</button>
+  `;
+}
+function bindGuestLog(id){
+  const c = DB.cocktails.find(x=>x.id===id);
+  if(!c) return;
+  document.getElementById('btn-add-guest').addEventListener('click', ()=>{
+    const namesRaw = document.getElementById('guest-names-input').value.trim();
+    const date = document.getElementById('guest-date-input').value || new Date().toISOString().slice(0,10);
+    if(!namesRaw){ toast('הוסיפו לפחות שם אחד'); return; }
+    const guests = namesRaw.split(',').map(s=>s.trim()).filter(Boolean);
+    if(!c.guestLog) c.guestLog = [];
+    c.guestLog.push({ date, guests });
+    saveDB();
+    openView(id);
+  });
+  document.querySelectorAll('.guest-remove-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const idx = parseInt(btn.dataset.idx, 10);
+      c.guestLog.splice(idx, 1);
+      saveDB();
+      openView(id);
+    });
+  });
+}
+function openView(id){
+  const c = DB.cocktails.find(x=>x.id===id);
+  if(!c) return;
+  document.getElementById('view-modal-content').innerHTML = `
+    <div class="modal-head"><h2>${escapeHtml(c.name)} ${c.favorite ? '⭐' : ''}</h2><button class="x" onclick="closeView()">✕</button></div>
+    ${c.image ? `<img class="hero-img" src="${c.image}">` : ''}
+    <div class="instr" style="white-space:pre-wrap; line-height:1.6;">${escapeHtml(c.recipe)}</div>
+    <div class="row" style="margin-top:16px;">
+      <button class="btn secondary" onclick="toggleFavorite('${c.id}'); openView('${c.id}')">${c.favorite ? '💔 הסר ממועדפים' : '⭐ הוסף למועדפים'}</button>
+      <button class="btn secondary" onclick="closeView(); openEdit('${c.id}')">עריכה</button>
+    </div>
+    <div class="row" style="margin-top:10px;">
+      <button class="btn secondary" onclick="setAsLast('${c.id}')">קבע כאחרון שהכנתי</button>
+    </div>
+    ${guestLogHtml(c)}
+  `;
+  bindGuestLog(id);
+  document.getElementById('view-overlay').classList.add('active');
+}
+function closeView(){ document.getElementById('view-overlay').classList.remove('active'); }
+function setAsLast(id){ DB.lastId = id; saveDB(); toast('נקבע כקוקטייל האחרון 🍸'); closeView(); renderHome(); }
+
+/* ========================= ADD / EDIT MODAL ========================= */
+let editingId = null;
+let pendingImage = null;
+
+document.getElementById('fab-add').addEventListener('click', ()=> openEdit(null));
+document.getElementById('modal-close').addEventListener('click', closeEdit);
+
+function openEdit(id){
+  editingId = id;
+  pendingImage = null;
+  const overlay = document.getElementById('modal-overlay');
+  const isNew = !id;
+  document.getElementById('modal-title').textContent = isNew ? 'קוקטייל חדש' : 'עריכת קוקטייל';
+  document.getElementById('btn-delete').style.display = isNew ? 'none' : 'block';
+  const preview = document.getElementById('f-image-preview');
+  preview.style.display='none';
+  document.getElementById('f-image').value = '';
+  if(isNew){
+    document.getElementById('f-name').value='';
+    document.getElementById('f-recipe').value='';
+  } else {
+    const c = DB.cocktails.find(x=>x.id===id);
+    document.getElementById('f-name').value = c.name;
+    document.getElementById('f-recipe').value = c.recipe;
+    if(c.image){ preview.src = c.image; preview.style.display='block'; pendingImage = c.image; }
+  }
+  overlay.classList.add('active');
+}
+function closeEdit(){ document.getElementById('modal-overlay').classList.remove('active'); }
+
+function resizeImageFile(file, maxW, callback){
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    const img = new Image();
+    img.onload = function(){
+      let w = img.width, h = img.height;
+      if(w > maxW){ h = Math.round(h * maxW / w); w = maxW; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      callback(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+document.getElementById('f-image').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  resizeImageFile(file, 900, (dataUrl)=>{
+    pendingImage = dataUrl;
+    const preview = document.getElementById('f-image-preview');
+    preview.src = pendingImage;
+    preview.style.display = 'block';
+  });
+});
+
+document.getElementById('btn-save-cocktail').addEventListener('click', ()=>{
+  const name = document.getElementById('f-name').value.trim();
+  const recipe = document.getElementById('f-recipe').value.trim();
+  if(!name){ toast('צריך שם לקוקטייל 🙂'); return; }
+  if(editingId){
+    const c = DB.cocktails.find(x=>x.id===editingId);
+    c.name = name; c.recipe = recipe; if(pendingImage) c.image = pendingImage;
+  } else {
+    const id = 'c_' + Date.now();
+    DB.cocktails.push({ id, name, recipe, image: pendingImage, date: new Date().toISOString() });
+    DB.lastId = id;
+  }
+  saveDB();
+  closeEdit();
+  toast('נשמר! 🍸');
+  renderHome(); renderList();
+});
+
+document.getElementById('btn-delete').addEventListener('click', ()=>{
+  if(!editingId) return;
+  const idx = DB.cocktails.findIndex(x=>x.id===editingId);
+  if(idx===-1) return;
+  const removedCocktail = DB.cocktails[idx];
+  const removedWasLast = DB.lastId === editingId;
+  DB.cocktails.splice(idx, 1);
+  if(removedWasLast) DB.lastId = DB.cocktails.length ? DB.cocktails[DB.cocktails.length-1].id : null;
+  saveDB();
+  closeEdit();
+  renderHome(); renderList(); renderFavorites();
+  toast(`"${removedCocktail.name}" נמחק`, 'בטל', ()=>{
+    DB.cocktails.splice(idx, 0, removedCocktail);
+    if(removedWasLast) DB.lastId = removedCocktail.id;
+    saveDB();
+    renderHome(); renderList(); renderFavorites();
+  });
+});
+
+/* ========================= MIXER ========================= */
+let mixerIngredients = [];
+const mixerField = document.getElementById('mixer-ingredient-field');
+mixerField.addEventListener('keydown', e=>{
+  if(e.key==='Enter'){
+    e.preventDefault();
+    const v = mixerField.value.trim();
+    if(v){ addIngredient(v); }
+  }
+});
+function addIngredient(v){
+  if(!mixerIngredients.includes(v)){ mixerIngredients.push(v); }
+  mixerField.value='';
+  renderChips();
+  renderMixerInventoryPicker();
+}
+function renderChips(){
+  const box = document.getElementById('mixer-chip-input');
+  box.querySelectorAll('.chip').forEach(c=>c.remove());
+  mixerIngredients.forEach((ing, idx)=>{
+    const chip = document.createElement('span');
+    chip.className='chip';
+    chip.innerHTML = `${escapeHtml(ing)} <button data-idx="${idx}">✕</button>`;
+    chip.querySelector('button').addEventListener('click', ()=>removeIngredient(idx));
+    box.insertBefore(chip, mixerField);
+  });
+}
+function renderMixerInventoryPicker(){
+  ensureInventoryDefaults();
+  const box = document.getElementById('mixer-inventory-picker');
+  const statusLabel = {new:'חדש', '75':'75%', '50':'50%', '25':'25%'};
+  const available = DB.inventory.filter(i=>i.status!=='missing');
+  if(available.length===0){
+    box.innerHTML = `<p class="muted" style="margin:0;">אין עדיין פריטים מסומנים כקיימים במלאי. עברו לטאב "מלאי" וסמנו מה יש לכם.</p>`;
+    return;
+  }
+  box.innerHTML = available.map(item=>{
+    const active = mixerIngredients.includes(item.name);
+    return `<button data-name="${escapeHtml(item.name)}" class="${active?'active':''}">${escapeHtml(item.name)} · ${statusLabel[item.status]||''}</button>`;
+  }).join('');
+  box.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const name = btn.dataset.name;
+      if(mixerIngredients.includes(name)) mixerIngredients = mixerIngredients.filter(x=>x!==name);
+      else mixerIngredients.push(name);
+      renderChips();
+      renderMixerInventoryPicker();
+    });
+  });
+}
+function removeIngredient(idx){ mixerIngredients.splice(idx,1); renderChips(); renderMixerInventoryPicker(); }
+
+document.getElementById('btn-save-key').addEventListener('click', ()=>{
+  DB.geminiKey = document.getElementById('gemini-key').value.trim();
+  saveDB();
+  toast('המפתח נשמר במכשיר שלך');
+});
+document.getElementById('gemini-key').value = DB.geminiKey || '';
+
+// small built-in cocktail knowledge base for offline suggestions (all measurements in ml)
+const KB = [
+ {name:'Old Fashioned', glass:'rocks', color:'#b5651d', ing:['בורבון','ויסקי','סוכר','אנגוסטורה','תפוז'], instr:'ערבבו קובית סוכר עם 2 טפטופי אנגוסטורה וקצת מים בכוס. הוסיפו קרח ו-60 מ"ל ויסקי/בורבון, ערבבו וקשטו בקליפת תפוז.'},
+ {name:'Negroni', glass:'rocks', color:'#8b1e2b', ing:["ג'ין",'קמפרי','ורמוט אדום'], instr:'30 מ"ל ג\'ין, 30 מ"ל קמפרי, 30 מ"ל ורמוט אדום. ערבבו עם קרח בכוס לואוול, קשטו בקליפת תפוז.'},
+ {name:'Margarita', glass:'coupe', color:'#cbb64a', ing:['טקילה','ליים','טריפל סק','קוואנטרו'], instr:'60 מ"ל טקילה, 30 מ"ל קוואנטרו/טריפל סק, 30 מ"ל מיץ ליים. שייקר עם קרח, מסננים לכוס עם מלח על השפה.'},
+ {name:'Daiquiri', glass:'coupe', color:'#e9dcae', ing:['רום','ליים','סוכר'], instr:'60 מ"ל רום לבן, 30 מ"ל מיץ ליים, 22 מ"ל סירופ סוכר. שייקר חזק עם קרח, מסננים לכוס קוקטייל.'},
+ {name:'Mojito', glass:'tall', color:'#8fce7a', ing:['רום','ליים','מנטה','סודה','סוכר'], instr:'מועכים עלי מנטה עם סוכר וליים בכוס. מוסיפים 60 מ"ל רום לבן, קרח, ומשלימים סודה. מערבבים בעדינות.'},
+ {name:'Whiskey Sour', glass:'rocks', color:'#d98a3d', ing:['בורבון','ויסקי','ליים','לימון','סוכר','חלבון'], instr:'60 מ"ל בורבון, 22 מ"ל מיץ לימון, 22 מ"ל סירופ סוכר (אופציה: חלבון ביצה). שייקר חזק, מסננים לכוס עם קרח.'},
+ {name:'Espresso Martini', glass:'martini', color:'#3b2415', ing:['וודקה','קפה','אספרסו','ליקר קפה','קלואה'], instr:'45 מ"ל וודקה, 30 מ"ל ליקר קפה (קלואה), 30 מ"ל אספרסו קר. שייקר חזק עם קרח, מסננים לכוס מרטיני.'},
+ {name:'Aperol Spritz', glass:'tall', color:'#e8792c', ing:['אפרול','פרוסקו','סודה'], instr:'90 מ"ל פרוסקו, 60 מ"ל אפרול, מעטו סודה. הכל על קרח בכוס גדולה, קשטו בפלח תפוז.'},
+ {name:'Gin Tonic', glass:'tall', color:'#cfe8e0', ing:["ג'ין",'טוניק'], instr:'60 מ"ל ג\'ין על קרח, השלימו מים טוניק, קשטו בליים או מלפפון.'},
+ {name:'Moscow Mule', glass:'tall', color:'#d9b45f', ing:['וודקה',"ג'ינג'ר ביר",'ליים'], instr:'60 מ"ל וודקה, מיץ מחצי ליים, השלימו ג\'ינג\'ר ביר על קרח. קשטו בענף מנטה.'},
+ {name:'Mai Tai', glass:'tall', color:'#c9612f', ing:['רום','ליים',"אורז'אט",'קוראסאו'], instr:'30 מ"ל רום כהה, 30 מ"ל רום לבן, 15 מ"ל קוראסאו, 15 מ"ל אורז\'אט, 22 מ"ל מיץ ליים. שייקר עם קרח, קשטו במנטה.'},
+ {name:'Cosmopolitan', glass:'martini', color:'#e0507a', ing:['וודקה','טריפל סק','קוואנטרו','ליים','קרנברי'], instr:'45 מ"ל וודקה, 15 מ"ל קוואנטרו, 15 מ"ל מיץ ליים, 30 מ"ל מיץ חמוציות. שייקר, מסננים לכוס מרטיני.'},
+ {name:'Manhattan', glass:'rocks', color:'#7a3420', ing:['בורבון','ויסקי','ורמוט אדום','אנגוסטורה'], instr:'60 מ"ל ויסקי/בורבון, 30 מ"ל ורמוט אדום, 2 טפטופי אנגוסטורה. ערבבו עם קרח, מסננים, קשטו בדובדבן.'},
+ {name:'Paloma', glass:'tall', color:'#e8637a', ing:['טקילה','ליים','גרפפרוט','סודה'], instr:'60 מ"ל טקילה, מיץ מחצי ליים, השלימו סודה גרפפרוט על קרח. מלח על השפה אופציונלי.'},
+ {name:'Pina Colada', glass:'tall', color:'#f0e2b6', ing:['רום','אננס','קוקוס'], instr:'60 מ"ל רום לבן, 60 מ"ל מיץ אננס, 30 מ"ל קרם קוקוס. בלנדר עם קרח עד קרמי, הגישו בכוס גבוהה.'}
+];
+
+/* ---- simple original glass illustrations (self-contained SVG, no external images) ---- */
+function glassInner(glass, color){
+  const c = color || '#c9a227';
+  const rim = '#e6c98a';
+  if(glass==='coupe'){
+    return `<path d="M18 18 L102 18 L60 88 Z" fill="${c}" opacity="0.88"/>
+      <path d="M14 13 L106 13 L60 92 Z" fill="none" stroke="${rim}" stroke-width="4" stroke-linejoin="round"/>
+      <rect x="56" y="92" width="8" height="42" fill="${rim}"/>
+      <rect x="34" y="134" width="52" height="8" rx="4" fill="${rim}"/>`;
+  } else if(glass==='martini'){
+    return `<path d="M16 15 L104 15 L60 82 Z" fill="${c}" opacity="0.88"/>
+      <path d="M10 10 L110 10 L60 88 Z" fill="none" stroke="${rim}" stroke-width="4" stroke-linejoin="round"/>
+      <rect x="56" y="88" width="8" height="48" fill="${rim}"/>
+      <rect x="32" y="134" width="56" height="8" rx="4" fill="${rim}"/>`;
+  } else if(glass==='tall'){
+    return `<rect x="35" y="10" width="50" height="128" rx="7" fill="none" stroke="${rim}" stroke-width="4"/>
+      <rect x="39" y="52" width="42" height="82" rx="4" fill="${c}" opacity="0.88"/>`;
+  }
+  return `<rect x="24" y="34" width="72" height="96" rx="9" fill="none" stroke="${rim}" stroke-width="4"/>
+      <rect x="28" y="70" width="64" height="58" rx="5" fill="${c}" opacity="0.88"/>`;
+}
+function glassSVG(glass, color){
+  return `<svg viewBox="0 0 120 148" width="64" height="80" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">${glassInner(glass, color)}</svg>`;
+}
+function seedImageDataUri(glass, color){
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+    <rect width="300" height="300" fill="#1c140d"/>
+    <g transform="translate(90,55) scale(1.25)">${glassInner(glass, color)}</g>
+  </svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+function guessIllustration(name, ingredients){
+  const nameLower = (name||'').toLowerCase();
+  const kbMatch = KB.find(k => nameLower.includes(k.name.toLowerCase()) || k.name.toLowerCase().includes(nameLower));
+  if(kbMatch) return { glass: kbMatch.glass, color: kbMatch.color };
+  const text = (ingredients||[]).join(' ').toLowerCase();
+  const colorMap = [
+    [['קולה'], {glass:'tall', color:'#4a2e1a'}],
+    [['ג\'ינג\'ר ביר','טוניק','סודה'], {glass:'tall', color:'#cfe8e0'}],
+    [['קמפרי','אפרול'], {glass:'tall', color:'#e8792c'}],
+    [['רום','אננס','קוקוס'], {glass:'tall', color:'#f0e2b6'}],
+    [['ויסקי','בורבון'], {glass:'rocks', color:'#b5651d'}],
+    [['וודקה'], {glass:'martini', color:'#d9d9e0'}],
+    [["ג'ין"], {glass:'coupe', color:'#cfe8e0'}],
+    [['טקילה'], {glass:'coupe', color:'#cbb64a'}],
+    [['קרנברי','חמוציות'], {glass:'martini', color:'#e0507a'}],
+    [['קפה','אספרסו'], {glass:'martini', color:'#3b2415'}]
+  ];
+  for(const [keys, val] of colorMap){
+    if(keys.some(k=>text.includes(k))) return val;
+  }
+  return { glass:'rocks', color:'#c9a227' };
+}
+
+document.getElementById('btn-generate').addEventListener('click', async ()=>{
+  if(mixerIngredients.length===0){ toast('הוסיפו כמה מרכיבים קודם'); return; }
+  const resultBox = document.getElementById('mixer-result');
+  resultBox.innerHTML = `<div class="card">⏳ מכינים הצעה...</div>`;
+
+  if(DB.geminiKey){
+    try{
+      const suggestion = await callGemini(mixerIngredients);
+      renderMixerResult(suggestion.name, suggestion.ing, suggestion.instr, true);
+      return;
+    }catch(err){
+      console.error(err);
+      toast('קריאת ה-AI נכשלה, מציג הצעה מהמאגר המקומי');
+    }
+  }
+  const local = localSuggest(mixerIngredients);
+  renderMixerResult(local.name, local.ing, local.instr, false);
+});
+
+function localSuggest(have){
+  const haveLower = have.map(x=>x.toLowerCase());
+  let best=null, bestScore=-1;
+  KB.forEach(c=>{
+    let score=0;
+    c.ing.forEach(i=>{ if(haveLower.some(h=>i.includes(h)||h.includes(i))) score++; });
+    if(score>bestScore){ bestScore=score; best=c; }
+  });
+  if(!best) best = KB[0];
+  return { name: best.name, ing: best.ing, instr: best.instr };
+}
+
+let currentMixerSuggestion = null;
+let pendingMixerImage = null;
+function renderMixerResult(name, ing, instr, fromAI){
+  currentMixerSuggestion = { name, instr };
+  pendingMixerImage = null;
+  const illus = guessIllustration(name, ing);
+  document.getElementById('mixer-result').innerHTML = `
+    <div class="card rec-card">
+      <div style="display:flex; gap:14px; align-items:flex-start;">
+        ${glassSVG(illus.glass, illus.color)}
+        <div style="flex:1; min-width:0;">
+          <p class="muted">${fromAI ? '✨ הצעה מבוססת AI' : '💡 הצעה מהמאגר המקומי (אין מפתח AI מוגדר)'}</p>
+          <h3 style="margin-bottom:0;">${escapeHtml(name)}</h3>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="instr">${escapeHtml(instr)}</div>
+      <label style="margin-top:14px;">רוצה לצרף תמונה שלך של התוצאה? 📷</label>
+      <input type="file" id="mixer-image-input" accept="image/*">
+      <img class="imgpick-preview" id="mixer-image-preview">
+      <div class="row" style="margin-top:14px;">
+        <button class="btn" id="btn-save-mixer">שמור להקוקטיילים שלי</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('btn-save-mixer').addEventListener('click', saveMixerResult);
+  document.getElementById('mixer-image-input').addEventListener('change', function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    resizeImageFile(file, 900, (dataUrl)=>{
+      pendingMixerImage = dataUrl;
+      const preview = document.getElementById('mixer-image-preview');
+      preview.src = dataUrl;
+      preview.style.display = 'block';
+    });
+  });
+}
+function saveMixerResult(){
+  if(!currentMixerSuggestion) return;
+  const { name, instr } = currentMixerSuggestion;
+  const id = 'c_' + Date.now();
+  DB.cocktails.push({ id, name, recipe: instr, image: pendingMixerImage, date: new Date().toISOString() });
+  DB.lastId = id;
+  saveDB();
+  toast('נשמר להקוקטיילים שלי 🍸');
+}
+
+async function callGemini(ingredients){
+  const key = DB.geminiKey;
+  const prompt = `אני בר-מן חובב ויש לי את המרכיבים הבאים: ${ingredients.join(', ')}. הצע לי קוקטייל אחד מנצח שאפשר להכין מהם (אפשר להניח שיש גם קרח, סוכר, מים וסודה בסיסיים). כל הכמויות חייבות להיות במיליליטר (מ"ל) בלבד, לעולם לא באונקיות. החזר תשובה בפורמט הבא בדיוק, בעברית, בלי שום טקסט נוסף:\nשם: <שם הקוקטייל>\nמתכון:\n<רשימת מרכיבים וכמויות במ"ל, שורה לכל מרכיב>\n\nהוראות הכנה:\n<הוראות קצרות וברורות>`;
+  const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ contents:[{ parts:[{ text: prompt }] }] })
+  });
+  if(!resp.ok) throw new Error('API error ' + resp.status);
+  const data = await resp.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const nameMatch = text.match(/שם:\s*(.+)/);
+  const name = nameMatch ? nameMatch[1].trim() : ingredients.join(' + ');
+  const instr = text.replace(/שם:.*(\r?\n)+/,'').trim() || text;
+  return { name, ing: ingredients, instr };
+}
+
+/* ========================= INVENTORY ========================= */
+const DEFAULT_ITEMS = ['וודקה','ג\'ין','רום לבן','רום כהה','טקילה','בורבון','ויסקי','קמפרי','אפרול','ורמוט אדום','ורמוט לבן','קוואנטרו/טריפל סק','אנגוסטורה','סירופ סוכר','מיץ ליים','מיץ לימון','סודה','טוניק','ג\'ינג\'ר ביר','פרוסקו'];
+
+function ensureInventoryDefaults(){
+  const names = DB.inventory.map(i=>i.name);
+  const removed = DB.removedDefaults || [];
+  DEFAULT_ITEMS.forEach(n=>{ if(!names.includes(n) && !removed.includes(n)) DB.inventory.push({name:n, status:'missing'}); });
+}
+
+function renderInventory(){
+  ensureInventoryDefaults();
+  const list = document.getElementById('inv-list');
+  const statuses = [['new','חדש'],['75','75%'],['50','50%'],['25','25%'],['missing','חסר']];
+  list.innerHTML = DB.inventory.map((item, idx) => `
+    <div class="inv-item">
+      <div class="top-row">
+        <div class="name">${escapeHtml(item.name)}</div>
+        <button class="star-btn" title="הסר מהמלאי" onclick="removeInvItem(${idx})">🗑️</button>
+      </div>
+      <div class="status-select">
+        ${statuses.map(([s,label])=>`<button class="status-btn ${item.status===s?'active':''}" data-s="${s}" onclick="setInvStatus(${idx},'${s}')">${label}</button>`).join('')}
+      </div>
+    </div>
+  `).join('');
+  const shopping = DB.inventory.filter(i=>i.status==='missing' || i.status==='25');
+  const shopBox = document.getElementById('inv-shopping');
+  if(shopping.length===0){
+    shopBox.innerHTML = `<p class="muted">המלאי שלך מצוין, אין צורך בקנייה כרגע 🎉</p>`;
+  } else {
+    shopBox.innerHTML = shopping.map(i=>`<div>• ${escapeHtml(i.name)} ${i.status==='missing'?'<span class="missing-badge">חסר</span>':'<span class="missing-badge" style="background:var(--warn); color:#1a1408;">נגמר לקראת הסוף</span>'}</div>`).join('');
+  }
+}
+function setInvStatus(idx, s){ DB.inventory[idx].status = s; saveDB(); renderInventory(); }
+function removeInvItem(idx){
+  const item = DB.inventory[idx];
+  if(!item) return;
+  const wasDefault = DEFAULT_ITEMS.includes(item.name);
+  DB.inventory.splice(idx, 1);
+  if(wasDefault){
+    if(!DB.removedDefaults) DB.removedDefaults = [];
+    if(!DB.removedDefaults.includes(item.name)) DB.removedDefaults.push(item.name);
+  }
+  saveDB();
+  renderInventory();
+  renderMixerInventoryPicker();
+  toast(`"${item.name}" הוסר מהמלאי`, 'בטל', ()=>{
+    DB.inventory.splice(idx, 0, item);
+    if(wasDefault){
+      DB.removedDefaults = (DB.removedDefaults||[]).filter(n=>n!==item.name);
+    }
+    saveDB();
+    renderInventory();
+    renderMixerInventoryPicker();
+  });
+}
+
+document.getElementById('btn-inv-add').addEventListener('click', ()=>{
+  const val = document.getElementById('inv-new-name').value.trim();
+  if(!val) return;
+  DB.inventory.push({name: val, status:'missing'});
+  document.getElementById('inv-new-name').value='';
+  saveDB();
+  renderInventory();
+});
+
+/* ========================= BACKUP / RESTORE ========================= */
+document.getElementById('btn-backup').addEventListener('click', ()=>{
+  document.getElementById('backup-overlay').classList.add('active');
+});
+document.getElementById('backup-close').addEventListener('click', ()=>{
+  document.getElementById('backup-overlay').classList.remove('active');
+});
+document.getElementById('btn-export').addEventListener('click', exportBackup);
+document.getElementById('btn-import').addEventListener('click', ()=>{
+  document.getElementById('import-file-input').click();
+});
+document.getElementById('import-file-input').addEventListener('change', handleImportFile);
+
+function showImportConfirm(parsed){
+  const modal = document.querySelector('#backup-overlay .modal');
+  modal.innerHTML = `
+    <div class="modal-head"><h2>⚠️ אישור ייבוא</h2></div>
+    <p class="muted">בקובץ נמצאו ${parsed.cocktails.length} קוקטיילים ו-${(parsed.inventory||[]).length} פריטי מלאי. ייבוא ידרוס את כל הנתונים הקיימים בדפדפן הזה. פעולה זו אינה הפיכה.</p>
+    <div class="row" style="margin-top:16px;">
+      <button class="btn secondary" id="btn-import-cancel">ביטול</button>
+      <button class="btn danger" id="btn-import-confirm">כן, ייבא ודרוס</button>
+    </div>
+  `;
+  document.getElementById('btn-import-cancel').addEventListener('click', restoreBackupModal);
+  document.getElementById('btn-import-confirm').addEventListener('click', ()=>{
+    DB = {
+      cocktails: parsed.cocktails || [],
+      inventory: parsed.inventory || [],
+      lastId: parsed.lastId || null,
+      geminiKey: parsed.geminiKey || DB.geminiKey || '',
+      removedDefaults: parsed.removedDefaults || []
+    };
+    saveDB();
+    document.getElementById('gemini-key').value = DB.geminiKey || '';
+    document.getElementById('backup-overlay').classList.remove('active');
+    restoreBackupModal();
+    toast('הגיבוי יובא בהצלחה 🎉');
+    renderHome(); renderList(); renderFavorites(); renderInventory(); renderMixerInventoryPicker();
+  });
+}
+function restoreBackupModal(){
+  const modal = document.querySelector('#backup-overlay .modal');
+  modal.innerHTML = `
+    <div class="modal-head"><h2>⚙️ גיבוי ושחזור</h2><button class="x" id="backup-close">✕</button></div>
+    <p class="muted">כל הנתונים שלך (מתכונים, תמונות ומלאי) שמורים רק בדפדפן הזה. מומלץ לגבות מדי פעם לקובץ, כדי שתוכל לשחזר אם תמחק היסטוריה או תעבור מכשיר.</p>
+    <div class="row" style="margin-top:14px;">
+      <button class="btn secondary" id="btn-export">⬇️ ייצוא גיבוי לקובץ</button>
+      <button class="btn secondary" id="btn-import">⬆️ ייבוא גיבוי מקובץ</button>
+    </div>
+    <input type="file" id="import-file-input" accept="application/json" style="display:none;">
+  `;
+  document.getElementById('backup-close').addEventListener('click', ()=>{
+    document.getElementById('backup-overlay').classList.remove('active');
+  });
+  document.getElementById('btn-export').addEventListener('click', exportBackup);
+  document.getElementById('btn-import').addEventListener('click', ()=>{
+    document.getElementById('import-file-input').click();
+  });
+  document.getElementById('import-file-input').addEventListener('change', handleImportFile);
+}
+function exportBackup(){
+  const blob = new Blob([JSON.stringify(DB, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'mybar-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  toast('קובץ הגיבוי הורד 💾');
+}
+function handleImportFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    let parsed;
+    try{
+      parsed = JSON.parse(ev.target.result);
+      if(!parsed || !Array.isArray(parsed.cocktails)) throw new Error('invalid file');
+    }catch(err){
+      toast('קובץ לא תקין — ודאו שזה קובץ גיבוי של MyBar');
+      e.target.value = '';
+      return;
+    }
+    showImportConfirm(parsed);
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+/* ========================= UTIL ========================= */
+function escapeHtml(str){
+  return (str||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+/* ========================= SEED DATA ========================= */
+function seedStarterCocktails(){
+  if(DB.cocktails.length > 0) return;
+  if(localStorage.getItem('mybar_seeded_v1')) return;
+  KB.forEach((k, idx) => {
+    DB.cocktails.push({
+      id: 'seed_' + idx,
+      name: k.name,
+      recipe: k.instr,
+      image: seedImageDataUri(k.glass, k.color),
+      date: new Date(Date.now() - (KB.length - idx) * 3600000).toISOString(),
+      favorite: false
+    });
+  });
+  DB.lastId = DB.cocktails[DB.cocktails.length-1].id;
+  localStorage.setItem('mybar_seeded_v1', '1');
+  saveDB();
+}
+seedStarterCocktails();
+
+/* ========================= INIT ========================= */
+renderHome();
+renderList();
+renderInventory();
+renderMixerInventoryPicker();
+</script>
+</body>
+</html>
