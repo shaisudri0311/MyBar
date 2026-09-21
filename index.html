@@ -786,6 +786,8 @@ function renderGeminiKeySection(){
     document.getElementById('btn-change-key').addEventListener('click', renderGeminiKeyInput);
     document.getElementById('btn-remove-key').addEventListener('click', ()=>{
       DB.geminiKey = '';
+      cachedWorkingModels = null;
+      cachedModelListForKey = null;
       saveDB();
       toast('המפתח הוסר');
       renderGeminiKeySection();
@@ -808,6 +810,8 @@ function renderGeminiKeyInput(){
     const val = document.getElementById('gemini-key').value.trim();
     if(!val){ toast('הקלידו מפתח, או לחצו הסר מפתח כדי לנקות'); return; }
     DB.geminiKey = val;
+    cachedWorkingModels = null;
+    cachedModelListForKey = null;
     saveDB();
     toast('המפתח נשמר במכשיר שלך 🔒');
     renderGeminiKeySection();
@@ -983,15 +987,53 @@ function saveMixerResult(){
   toast('נשמר להקוקטיילים שלי 🍸');
 }
 
-// Google's rolling alias always points at the current Flash model, so it shouldn't
-// go stale the way a hardcoded version (like gemini-2.0-flash or gemini-2.5-flash) did.
-// A couple of hardcoded fallbacks are kept in case the alias itself has a hiccup.
-const GEMINI_MODEL_CANDIDATES = ['gemini-flash-latest', 'gemini-3.6-flash', 'gemini-2.5-flash'];
+// Google renames/retires Flash model IDs every few weeks (gemini-2.0-flash,
+// gemini-2.5-flash, gemini-flash-latest, gemini-3.6-flash have each stopped
+// working for this app at some point). Guessing a name in code keeps breaking.
+// Instead, we ask Google's own ListModels endpoint which models THIS key can
+// actually use right now, and pick a working one from that real list — cached
+// per key for the session so we don't re-check on every single click.
+let cachedModelListForKey = null;
+let cachedWorkingModels = null;
 
-async function callGemini(ingredients, guestCount){
-  const key = DB.geminiKey;
-  const gc = guestCount || 1;
-  const prompt = `אני בר-מן חובב ויש לי את המרכיבים הבאים: ${ingredients.join(', ')}. הצע לי קוקטייל אחד מנצח שאפשר להכין מהם (אפשר להניח שיש גם קרח, סוכר, מים וסודה בסיסיים), בכמות המתאימה בדיוק ל-${gc} סועדים (הכפילו את הכמויות בהתאם למספר הסועדים). כל הכמויות חייבות להיות במיליליטר (מ"ל) בלבד, לעולם לא באונקיות. החזר תשובה בפורמט הבא בדיוק, בעברית, בלי שום טקסט נוסף:\nשם: <שם הקוקטייל>\nמתכון:\n<רשימת מרכיבים וכמויות במ"ל עבור ${gc} סועדים, שורה לכל מרכיב>\n\nהוראות הכנה:\n<הוראות קצרות וברורות>`;
+async function discoverGeminiModels(key){
+  const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`);
+  if(!resp.ok){
+    let detail = '';
+    try{ detail = (await resp.json())?.error?.message || ''; }catch(e){}
+    throw new Error(`לא הצלחנו לקבל את רשימת המודלים מ-Google (${resp.status})${detail ? ': ' + detail : ''}`);
+  }
+  const data = await resp.json();
+  const usable = (data.models || [])
+    .filter(m => (m.supportedGenerationMethods || []).includes('generateContent'))
+    .map(m => (m.name || '').replace(/^models\//, ''))
+    .filter(Boolean);
+  if(usable.length === 0) throw new Error('לא נמצאו מודלים פעילים עבור המפתח הזה');
+  // Prefer a plain "flash" model (fast + cheap + usually most available on the
+  // free tier) over pro/preview/lite/vision/tts/embedding variants, but keep
+  // everything else as further fallbacks in case the preferred ones fail too.
+  const score = (name) => {
+    const n = name.toLowerCase();
+    if(n.includes('embedding') || n.includes('tts') || n.includes('vision') || n.includes('image')) return -1;
+    let s = 0;
+    if(n.includes('flash')) s += 10;
+    if(!n.includes('preview')) s += 3;
+    if(!n.includes('lite')) s += 1;
+    if(!n.includes('pro')) s += 1;
+    return s;
+  };
+  return usable
+    .filter(n => score(n) >= 0)
+    .sort((a, b) => score(b) - score(a));
+}
+
+async function getWorkingGeminiModels(key){
+  if(cachedWorkingModels && cachedModelListForKey === key) return cachedWorkingModels;
+  const discovered = await discoverGeminiModels(key);
+  cachedModelListForKey = key;
+  cachedWorkingModels = discovered;
+  return discovered;
+}
 
 function isRetryableGeminiStatus(status){
   // 404 = this specific model name isn't available for the key; 429 = rate-limited;
@@ -1002,8 +1044,15 @@ function isRetryableGeminiStatus(status){
   return [404, 429, 500, 502, 503].includes(status);
 }
 
-let lastError = null;
-  for(const model of GEMINI_MODEL_CANDIDATES){
+async function callGemini(ingredients, guestCount){
+  const key = DB.geminiKey;
+  const gc = guestCount || 1;
+  const prompt = `אני בר-מן חובב ויש לי את המרכיבים הבאים: ${ingredients.join(', ')}. הצע לי קוקטייל אחד מנצח שאפשר להכין מהם (אפשר להניח שיש גם קרח, סוכר, מים וסודה בסיסיים), בכמות המתאימה בדיוק ל-${gc} סועדים (הכפילו את הכמויות בהתאם למספר הסועדים). כל הכמויות חייבות להיות במיליליטר (מ"ל) בלבד, לעולם לא באונקיות. החזר תשובה בפורמט הבא בדיוק, בעברית, בלי שום טקסט נוסף:\nשם: <שם הקוקטייל>\nמתכון:\n<רשימת מרכיבים וכמויות במ"ל עבור ${gc} סועדים, שורה לכל מרכיב>\n\nהוראות הכנה:\n<הוראות קצרות וברורות>`;
+
+  const candidates = await getWorkingGeminiModels(key);
+
+  let lastError = null;
+  for(const model of candidates){
     const controller = new AbortController();
     const timeoutId = setTimeout(()=>controller.abort(), 20000); // 20s per model — never hang forever
     try{
@@ -1021,6 +1070,11 @@ let lastError = null;
           detail = errBody?.error?.message || '';
         }catch(e){}
         lastError = new Error(`שגיאת Gemini (${resp.status})${detail ? ': ' + detail : ''}`);
+        if(resp.status === 404){
+          // The model list we cached is stale (Google removed this one since) —
+          // drop the cache so the next attempt re-discovers a fresh list.
+          cachedWorkingModels = null;
+        }
         if(isRetryableGeminiStatus(resp.status)){ continue; }
         throw lastError;
       }
