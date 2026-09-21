@@ -305,6 +305,18 @@
         <p class="muted" style="margin-top:6px; font-size:11px;">אפשר להשיג מפתח בחינם ב-aistudio.google.com</p>
       </details>
     </div>
+
+    <div class="card">
+      <h2>🎲 תפתיע אותי</h2>
+      <p class="muted">מסתכל על כל מה שיש לכם במלאי (לא רק מה שבחרתם למעלה) ומייצר את הקוקטייל הכי טוב שאפשר.</p>
+      <label>כיוון טעם (אופציונלי)</label>
+      <div class="chip-suggestions" id="surprise-taste-picker"></div>
+      <label style="margin-top:14px;">בסיס (אופציונלי)</label>
+      <div class="chip-suggestions" id="surprise-base-picker"></div>
+      <div class="row" style="margin-top:14px;">
+        <button class="btn" id="btn-surprise">🎲 תפתיע אותי!</button>
+      </div>
+    </div>
     <div id="mixer-result"></div>
   </section>
 
@@ -748,7 +760,7 @@ function renderChips(){
 function renderMixerInventoryPicker(){
   ensureInventoryDefaults();
   const box = document.getElementById('mixer-inventory-picker');
-  const statusLabel = {new:'חדש', '75':'75%', '50':'50%', '25':'25%'};
+  const statusColor = {new:'#3f7a5a', '75':'#4f8a4f', '50':'#d9b45f', '25':'#b0763f'};
   const available = DB.inventory.filter(i=>i.status!=='missing');
   if(available.length===0){
     box.innerHTML = `<p class="muted" style="margin:0;">אין עדיין פריטים מסומנים כקיימים במלאי. עברו לטאב "מלאי" וסמנו מה יש לכם.</p>`;
@@ -756,7 +768,8 @@ function renderMixerInventoryPicker(){
   }
   box.innerHTML = available.map(item=>{
     const active = mixerIngredients.includes(item.name);
-    return `<button data-name="${escapeHtml(item.name)}" class="${active?'active':''}">${escapeHtml(item.name)} · ${statusLabel[item.status]||''}</button>`;
+    const dot = statusColor[item.status] || '#8a8a8a';
+    return `<button data-name="${escapeHtml(item.name)}" class="${active?'active':''}" style="border-right:3px solid ${dot};">${escapeHtml(item.name)}</button>`;
   }).join('');
   box.querySelectorAll('button').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -823,21 +836,21 @@ renderGeminiKeySection();
 
 // small built-in cocktail knowledge base for offline suggestions (all measurements in ml)
 const KB = [
- {name:'Old Fashioned', glass:'rocks', color:'#b5651d', ing:['בורבון','ויסקי','סוכר','אנגוסטורה','תפוז'], instr:'ערבבו קובית סוכר עם 2 טפטופי אנגוסטורה וקצת מים בכוס. הוסיפו קרח ו-60 מ"ל ויסקי/בורבון, ערבבו וקשטו בקליפת תפוז.'},
- {name:'Negroni', glass:'rocks', color:'#8b1e2b', ing:["ג'ין",'קמפרי','ורמוט אדום'], instr:'30 מ"ל ג\'ין, 30 מ"ל קמפרי, 30 מ"ל ורמוט אדום. ערבבו עם קרח בכוס לואוול, קשטו בקליפת תפוז.'},
- {name:'Margarita', glass:'coupe', color:'#cbb64a', ing:['טקילה','ליים','טריפל סק','קוואנטרו'], instr:'60 מ"ל טקילה, 30 מ"ל קוואנטרו/טריפל סק, 30 מ"ל מיץ ליים. שייקר עם קרח, מסננים לכוס עם מלח על השפה.'},
- {name:'Daiquiri', glass:'coupe', color:'#e9dcae', ing:['רום','ליים','סוכר'], instr:'60 מ"ל רום לבן, 30 מ"ל מיץ ליים, 22 מ"ל סירופ סוכר. שייקר חזק עם קרח, מסננים לכוס קוקטייל.'},
- {name:'Mojito', glass:'tall', color:'#8fce7a', ing:['רום','ליים','מנטה','סודה','סוכר'], instr:'מועכים עלי מנטה עם סוכר וליים בכוס. מוסיפים 60 מ"ל רום לבן, קרח, ומשלימים סודה. מערבבים בעדינות.'},
- {name:'Whiskey Sour', glass:'rocks', color:'#d98a3d', ing:['בורבון','ויסקי','ליים','לימון','סוכר','חלבון'], instr:'60 מ"ל בורבון, 22 מ"ל מיץ לימון, 22 מ"ל סירופ סוכר (אופציה: חלבון ביצה). שייקר חזק, מסננים לכוס עם קרח.'},
- {name:'Espresso Martini', glass:'martini', color:'#3b2415', ing:['וודקה','קפה','אספרסו','ליקר קפה','קלואה'], instr:'45 מ"ל וודקה, 30 מ"ל ליקר קפה (קלואה), 30 מ"ל אספרסו קר. שייקר חזק עם קרח, מסננים לכוס מרטיני.'},
- {name:'Aperol Spritz', glass:'tall', color:'#e8792c', ing:['אפרול','פרוסקו','סודה'], instr:'90 מ"ל פרוסקו, 60 מ"ל אפרול, מעטו סודה. הכל על קרח בכוס גדולה, קשטו בפלח תפוז.'},
- {name:'Gin Tonic', glass:'tall', color:'#cfe8e0', ing:["ג'ין",'טוניק'], instr:'60 מ"ל ג\'ין על קרח, השלימו מים טוניק, קשטו בליים או מלפפון.'},
- {name:'Moscow Mule', glass:'tall', color:'#d9b45f', ing:['וודקה',"ג'ינג'ר ביר",'ליים'], instr:'60 מ"ל וודקה, מיץ מחצי ליים, השלימו ג\'ינג\'ר ביר על קרח. קשטו בענף מנטה.'},
- {name:'Mai Tai', glass:'tall', color:'#c9612f', ing:['רום','ליים',"אורז'אט",'קוראסאו'], instr:'30 מ"ל רום כהה, 30 מ"ל רום לבן, 15 מ"ל קוראסאו, 15 מ"ל אורז\'אט, 22 מ"ל מיץ ליים. שייקר עם קרח, קשטו במנטה.'},
- {name:'Cosmopolitan', glass:'martini', color:'#e0507a', ing:['וודקה','טריפל סק','קוואנטרו','ליים','קרנברי'], instr:'45 מ"ל וודקה, 15 מ"ל קוואנטרו, 15 מ"ל מיץ ליים, 30 מ"ל מיץ חמוציות. שייקר, מסננים לכוס מרטיני.'},
- {name:'Manhattan', glass:'rocks', color:'#7a3420', ing:['בורבון','ויסקי','ורמוט אדום','אנגוסטורה'], instr:'60 מ"ל ויסקי/בורבון, 30 מ"ל ורמוט אדום, 2 טפטופי אנגוסטורה. ערבבו עם קרח, מסננים, קשטו בדובדבן.'},
- {name:'Paloma', glass:'tall', color:'#e8637a', ing:['טקילה','ליים','גרפפרוט','סודה'], instr:'60 מ"ל טקילה, מיץ מחצי ליים, השלימו סודה גרפפרוט על קרח. מלח על השפה אופציונלי.'},
- {name:'Pina Colada', glass:'tall', color:'#f0e2b6', ing:['רום','אננס','קוקוס'], instr:'60 מ"ל רום לבן, 60 מ"ל מיץ אננס, 30 מ"ל קרם קוקוס. בלנדר עם קרח עד קרמי, הגישו בכוס גבוהה.'}
+ {name:'Old Fashioned', glass:'rocks', color:'#b5651d', base:'ויסקי', taste:'מריר מתוק', ing:['בורבון','ויסקי','סוכר','אנגוסטורה','תפוז'], instr:'ערבבו קובית סוכר עם 2 טפטופי אנגוסטורה וקצת מים בכוס. הוסיפו קרח ו-60 מ"ל ויסקי/בורבון, ערבבו וקשטו בקליפת תפוז.', tip:'טיפה של ליקר בננה או ליקר וישינק שחור מוסיפה עומק פירותי מעניין מעל הבורבון.', garnish:'קליפת תפוז שנשרפת קלות במצית מעל הכוס (orange twist flambé) — הארומה שנפתחת משנה את כל החוויה.'},
+ {name:'Negroni', glass:'rocks', color:'#8b1e2b', base:"ג'ין", taste:'מריר מתוק', ing:["ג'ין",'קמפרי','ורמוט אדום'], instr:'30 מ"ל ג\'ין, 30 מ"ל קמפרי, 30 מ"ל ורמוט אדום. ערבבו עם קרח בכוס לואוול, קשטו בקליפת תפוז.', tip:'טיפה של ליקר תפוזים כהה (Grand Marnier) מוסיפה שכבת עומק מתחת למרירות.', garnish:'פרוסת תפוז דקה עם ציפורן (clove) תקוע בתוכה — גם ריח וגם מראה.'},
+ {name:'Margarita', glass:'coupe', color:'#cbb64a', base:'טקילה', taste:'חמוץ מתוק', ing:['טקילה','ליים','טריפל סק','קוואנטרו'], instr:'60 מ"ל טקילה, 30 מ"ל קוואנטרו/טריפל סק, 30 מ"ל מיץ ליים. שייקר עם קרח, מסננים לכוס עם מלח על השפה.', tip:'טיפת ליקר פסיפלורה או מנגו הופכת אותה לגרסה טרופית מפתיעה.', garnish:'מלח צ\'ילי-ליים על חצי מהשפה בלבד — ניגוד בין לגימה חדה ללגימה עדינה.'},
+ {name:'Daiquiri', glass:'coupe', color:'#e9dcae', base:'רום לבן', taste:'חמוץ מתוק', ing:['רום','ליים','סוכר'], instr:'60 מ"ל רום לבן, 30 מ"ל מיץ ליים, 22 מ"ל סירופ סוכר. שייקר חזק עם קרח, מסננים לכוס קוקטייל.', tip:'כפית ליקר מרסקינו מוסיפה רובד וישנה עדין שמעלה את המשקה לליגה אחרת.', garnish:'קליפת ליים דקה מגולגלת לצורת פרח, או פרח אכיל צף על הפנים.'},
+ {name:'Mojito', glass:'tall', color:'#8fce7a', base:'רום לבן', taste:'חמוץ מתוק', ing:['רום','ליים','מנטה','סודה','סוכר'], instr:'מועכים עלי מנטה עם סוכר וליים בכוס. מוסיפים 60 מ"ל רום לבן, קרח, ומשלימים סודה. מערבבים בעדינות.', tip:'פירה תותים או מיץ פסיפלורה הופכים אותו לגרסה פירותית עשירה יותר.', garnish:'ענף מנטה גדול שמכים עליו קלות (לשחרור השמנים) + קש נייר צבעוני.'},
+ {name:'Whiskey Sour', glass:'rocks', color:'#d98a3d', base:'ויסקי', taste:'חמוץ מתוק', ing:['בורבון','ויסקי','ליים','לימון','סוכר','חלבון'], instr:'60 מ"ל בורבון, 22 מ"ל מיץ לימון, 22 מ"ל סירופ סוכר (אופציה: חלבון ביצה). שייקר חזק, מסננים לכוס עם קרח.', tip:'טיפת ליקר וישנה שחורה מוסיפה מתיקות עמוקה שמאזנת את החמיצות.', garnish:'קצף חלבון עליון עם כמה טיפות אנגוסטורה בצורת לב או עיגולים — מראה של בר מקצועי.'},
+ {name:'Espresso Martini', glass:'martini', color:'#3b2415', base:'וודקה', taste:'מריר מתוק', ing:['וודקה','קפה','אספרסו','ליקר קפה','קלואה'], instr:'45 מ"ל וודקה, 30 מ"ל ליקר קפה (קלואה), 30 מ"ל אספרסו קר. שייקר חזק עם קרח, מסננים לכוס מרטיני.', tip:'טיפת ליקר שוקולד מוסיפה עומק שיהפוך אותו לדסרט לכל דבר.', garnish:'3 פולי קפה שלמים צפים על הקצף — הקישוט הקלאסי שמשדר מקצועיות.'},
+ {name:'Aperol Spritz', glass:'tall', color:'#e8792c', base:null, taste:'מריר מתוק', ing:['אפרול','פרוסקו','סודה'], instr:'90 מ"ל פרוסקו, 60 מ"ל אפרול, מעטו סודה. הכל על קרח בכוס גדולה, קשטו בפלח תפוז.', tip:'טיפת ליקר אלדרפלאור (St-Germain) מוסיפה רובד פרחוני עדין.', garnish:'גלגל תות טרי לצד פלח התפוז — צבעוניות שמצלמת מעולה.'},
+ {name:'Gin Tonic', glass:'tall', color:'#cfe8e0', base:"ג'ין", taste:'מריר מתוק', ing:["ג'ין",'טוניק'], instr:'60 מ"ל ג\'ין על קרח, השלימו מים טוניק, קשטו בליים או מלפפון.', tip:'ג\'ין בוטני יותר (עם רוזמרין או פרחי היביסקוס) מעלה את המשקה לרמה אחרת לגמרי.', garnish:'ענף רוזמרין שרוף קלות במצית, או פרח אכיל צף — מראה ותמונה.'},
+ {name:'Moscow Mule', glass:'tall', color:'#d9b45f', base:'וודקה', taste:'חמוץ מתוק', ing:['וודקה',"ג'ינג'ר ביר",'ליים'], instr:'60 מ"ל וודקה, מיץ מחצי ליים, השלימו ג\'ינג\'ר ביר על קרח. קשטו בענף מנטה.', tip:'טיפת ליקר ג\'ינג\'ר חריף מוסיפה עוקץ נוסף שמשלים את הג\'ינג\'ר ביר.', garnish:'כוס נחושת קפואה + מקלון קינמון לצד פלח ליים — קלאסי ומרשים.'},
+ {name:'Mai Tai', glass:'tall', color:'#c9612f', base:'רום לבן', taste:'חמוץ מתוק', ing:['רום','ליים',"אורז'אט",'קוראסאו'], instr:'30 מ"ל רום כהה, 30 מ"ל רום לבן, 15 מ"ל קוראסאו, 15 מ"ל אורז\'אט, 22 מ"ל מיץ ליים. שייקר עם קרח, קשטו במנטה.', tip:'טיפת ליקר בננה כ-floater עדין מוסיפה רובד טרופי נוסף.', garnish:'ענף מנטה + פלח פיינאפל + שמשיית קוקטייל קלאסית — חוויית טיקי מלאה.'},
+ {name:'Cosmopolitan', glass:'martini', color:'#e0507a', base:'וודקה', taste:'חמוץ מתוק', ing:['וודקה','טריפל סק','קוואנטרו','ליים','קרנברי'], instr:'45 מ"ל וודקה, 15 מ"ל קוואנטרו, 15 מ"ל מיץ ליים, 30 מ"ל מיץ חמוציות. שייקר, מסננים לכוס מרטיני.', tip:'ריסוס טיפה של ליקר תותים על פני המשקה מוסיף ניחוח מיד עם ההגשה.', garnish:'קליפת תפוז מסולסלת דקה — נגיעה של אלגנטיות שמשלימה את הצבע הוורוד.'},
+ {name:'Manhattan', glass:'rocks', color:'#7a3420', base:'ויסקי', taste:'מריר מתוק', ing:['בורבון','ויסקי','ורמוט אדום','אנגוסטורה'], instr:'60 מ"ל ויסקי/בורבון, 30 מ"ל ורמוט אדום, 2 טפטופי אנגוסטורה. ערבבו עם קרח, מסננים, קשטו בדובדבן.', tip:'דובדבן מרסקינו איכותי (Luxardo) במקום דובדבן קוקטייל רגיל משנה את כל האיזון.', garnish:'דובדבן מרסקינו על קוקטייל-קיסם, לצד קליפת תפוז מסולסלת.'},
+ {name:'Paloma', glass:'tall', color:'#e8637a', base:'טקילה', taste:'חמוץ מתוק', ing:['טקילה','ליים','גרפפרוט','סודה'], instr:'60 מ"ל טקילה, מיץ מחצי ליים, השלימו סודה גרפפרוט על קרח. מלח על השפה אופציונלי.', tip:'טיפת ליקר היביסקוס נותנת צבע ורוד עמוק וארומה פרחונית עדינה.', garnish:'מלח ורדים (chili-salt) על השפה + פרח היביסקוס אכיל — מרשים לתמונה.'},
+ {name:'Pina Colada', glass:'tall', color:'#f0e2b6', base:'רום לבן', taste:'מתוק', ing:['רום','אננס','קוקוס'], instr:'60 מ"ל רום לבן, 60 מ"ל מיץ אננס, 30 מ"ל קרם קוקוס. בלנדר עם קרח עד קרמי, הגישו בכוס גבוהה.', tip:'טיפת רום כהה כ-floater עדין מעל הקצף מוסיפה עומק וארומה נוספת.', garnish:'פרוסת אננס + פרח טרופי + שמשיית קוקטייל — חוויית חוף מלאה.'}
 ];
 
 /* ---- simple original glass illustrations (self-contained SVG, no external images) ---- */
@@ -925,19 +938,80 @@ function scaleMlAmounts(text, factor){
     return scaled + unit;
   });
 }
-function localSuggest(have, guestCount){
+function localSuggest(have, guestCount, prefs){
   const haveLower = have.map(x=>x.toLowerCase());
+  const wantBase = prefs?.base || null;
+  const wantTaste = prefs?.taste || null;
   let best=null, bestScore=-1;
   KB.forEach(c=>{
     let score=0;
     c.ing.forEach(i=>{ if(haveLower.some(h=>i.includes(h)||h.includes(i))) score++; });
+    if(wantBase && c.base === wantBase) score += 8;
+    if(wantTaste && c.taste === wantTaste) score += 8;
     if(score>bestScore){ bestScore=score; best=c; }
   });
   if(!best) best = KB[0];
   const factor = guestCount || 1;
-  const instr = scaleMlAmounts(best.instr, factor);
+  const recipe = scaleMlAmounts(best.instr, factor);
+  const instr = `${recipe}\n\nטיפ +1:\n${best.tip}\n\nטיפ הגשה:\n${best.garnish}`;
   return { name: best.name, ing: best.ing, instr };
 }
+
+/* ========================= SURPRISE ME ========================= */
+const TASTE_OPTIONS = ['חמוץ', 'מתוק', 'חמוץ מתוק', 'מריר מתוק'];
+const BASE_OPTIONS = ['וודקה', "ג'ין", 'רום לבן', 'עראק', 'ויסקי', 'טקילה'];
+let surpriseTaste = null;
+let surpriseBase = null;
+
+function renderSingleSelectPicker(containerId, options, currentValue, onPick){
+  const box = document.getElementById(containerId);
+  box.innerHTML = options.map(opt =>
+    `<button data-v="${escapeHtml(opt)}" class="${currentValue===opt?'active':''}">${escapeHtml(opt)}</button>`
+  ).join('');
+  box.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const v = btn.dataset.v;
+      onPick(currentValue === v ? null : v); // clicking the active one again clears the choice
+    });
+  });
+}
+function renderSurprisePickers(){
+  renderSingleSelectPicker('surprise-taste-picker', TASTE_OPTIONS, surpriseTaste, (v)=>{ surpriseTaste = v; renderSurprisePickers(); });
+  renderSingleSelectPicker('surprise-base-picker', BASE_OPTIONS, surpriseBase, (v)=>{ surpriseBase = v; renderSurprisePickers(); });
+}
+function getAvailableInventoryNames(){
+  ensureInventoryDefaults();
+  return DB.inventory.filter(i=>i.status!=='missing').map(i=>i.name);
+}
+
+document.getElementById('btn-surprise').addEventListener('click', async ()=>{
+  const available = getAvailableInventoryNames();
+  if(available.length===0){
+    toast('אין עדיין פריטים מסומנים כקיימים במלאי. עברו לטאב "מלאי" וסמנו מה יש לכם.');
+    return;
+  }
+  let guestCount = parseInt(document.getElementById('mixer-guest-count').value, 10);
+  if(isNaN(guestCount) || guestCount < 1) guestCount = 1;
+  if(guestCount > 10) guestCount = 10;
+
+  const resultBox = document.getElementById('mixer-result');
+  resultBox.innerHTML = `<div class="card">🎲 מחפשים את הקוקטייל הטוב ביותר...</div>`;
+
+  const prefs = { base: surpriseBase, taste: surpriseTaste };
+
+  if(DB.geminiKey){
+    try{
+      const suggestion = await callGemini(available, guestCount, prefs);
+      renderMixerResult(suggestion.name, suggestion.ing, suggestion.instr, true, guestCount);
+      return;
+    }catch(err){
+      console.error(err);
+      toast((err.message || 'קריאת ה-AI נכשלה') + ' — מציג הצעה מהמאגר המקומי');
+    }
+  }
+  const local = localSuggest(available, guestCount, prefs);
+  renderMixerResult(local.name, local.ing, local.instr, false, guestCount);
+});
 
 let currentMixerSuggestion = null;
 let pendingMixerImage = null;
@@ -957,6 +1031,9 @@ function renderMixerResult(name, ing, instr, fromAI, guestCount){
       </div>
       <div class="divider"></div>
       <div class="instr">${escapeHtml(instr)}</div>
+      <div class="row" style="margin-top:14px;">
+        <button class="btn secondary" id="btn-copy-mixer">📋 העתק</button>
+      </div>
       <label style="margin-top:14px;">רוצה לצרף תמונה שלך של התוצאה? 📷</label>
       <input type="file" id="mixer-image-input" accept="image/*">
       <img class="imgpick-preview" id="mixer-image-preview">
@@ -966,6 +1043,10 @@ function renderMixerResult(name, ing, instr, fromAI, guestCount){
     </div>
   `;
   document.getElementById('btn-save-mixer').addEventListener('click', saveMixerResult);
+  document.getElementById('btn-copy-mixer').addEventListener('click', ()=>{
+    const text = `${name}\n\n${instr}`;
+    copyToClipboard(text);
+  });
   document.getElementById('mixer-image-input').addEventListener('change', function(e){
     const file = e.target.files[0];
     if(!file) return;
@@ -1044,10 +1125,14 @@ function isRetryableGeminiStatus(status){
   return [404, 429, 500, 502, 503].includes(status);
 }
 
-async function callGemini(ingredients, guestCount){
+async function callGemini(ingredients, guestCount, prefs){
   const key = DB.geminiKey;
   const gc = guestCount || 1;
-  const prompt = `אני בר-מן חובב ויש לי את המרכיבים הבאים: ${ingredients.join(', ')}. הצע לי קוקטייל אחד מנצח שאפשר להכין מהם (אפשר להניח שיש גם קרח, סוכר, מים וסודה בסיסיים), בכמות המתאימה בדיוק ל-${gc} סועדים (הכפילו את הכמויות בהתאם למספר הסועדים). כל הכמויות חייבות להיות במיליליטר (מ"ל) בלבד, לעולם לא באונקיות. החזר תשובה בפורמט הבא בדיוק, בעברית, בלי שום טקסט נוסף:\nשם: <שם הקוקטייל>\nמתכון:\n<רשימת מרכיבים וכמויות במ"ל עבור ${gc} סועדים, שורה לכל מרכיב>\n\nהוראות הכנה:\n<הוראות קצרות וברורות>`;
+  const constraints = [];
+  if(prefs?.base) constraints.push(`הקוקטייל חייב להתבסס על ${prefs.base} כמשקה הבסיס`);
+  if(prefs?.taste) constraints.push(`כיוון הטעם המבוקש הוא: ${prefs.taste}`);
+  const constraintText = constraints.length ? ` ${constraints.join('. ')}.` : '';
+  const prompt = `אני בר-מן חובב ויש לי את המרכיבים הבאים: ${ingredients.join(', ')}. הצע לי קוקטייל אחד מנצח שאפשר להכין מהם (אפשר להניח שיש גם קרח, סוכר, מים וסודה בסיסיים), בכמות המתאימה בדיוק ל-${gc} סועדים (הכפילו את הכמויות בהתאם למספר הסועדים).${constraintText} כל הכמויות חייבות להיות במיליליטר (מ"ל) בלבד, לעולם לא באונקיות. בנוסף, תמיד הוסיפו שני דברים: (1) "טיפ +1" — מרכיב אחד ספציפי שהייתי יכול להוסיף כדי לשדרג את הקוקטייל לרמה הבאה, גם אם אין לי אותו כרגע; (2) "טיפ הגשה" — טיפ קישוט או הגשה קונקרטי (כמו רימור על שפת הכוס, פרח אכיל, ענף מנטה, גרניש מיוחד) שיקח את המשקה לשלב הבא ויזואלית. החזר תשובה בפורמט הבא בדיוק, בעברית, בלי שום טקסט נוסף:\nשם: <שם הקוקטייל>\nמתכון:\n<רשימת מרכיבים וכמויות במ"ל עבור ${gc} סועדים, שורה לכל מרכיב>\n\nהוראות הכנה:\n<הוראות קצרות וברורות>\n\nטיפ +1:\n<המרכיב שישדרג את הקוקטייל, עם הסבר קצר>\n\nטיפ הגשה:\n<טיפ הגשה/קישוט קונקרטי>`;
 
   const candidates = await getWorkingGeminiModels(key);
 
@@ -1260,6 +1345,34 @@ function handleImportFile(e){
 function escapeHtml(str){
   return (str||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
+async function copyToClipboard(text){
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(text);
+      toast('הועתק! 📋 אפשר להדביק בצ\'אט שלכם');
+      return;
+    }
+    throw new Error('clipboard API not available');
+  }catch(e){
+    // Fallback for contexts where the Clipboard API is blocked (e.g. some
+    // file:// pages): copy via a temporary, off-screen textarea instead.
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      ta.style.top = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      toast(ok ? 'הועתק! 📋 אפשר להדביק בצ\'אט שלכם' : 'ההעתקה האוטומטית נכשלה — סמנו את הטקסט והעתיקו ידנית');
+    }catch(err2){
+      toast('ההעתקה האוטומטית נכשלה — סמנו את הטקסט והעתיקו ידנית');
+    }
+  }
+}
 /* ========================= SEED DATA ========================= */
 function seedStarterCocktails(){
   if(DB.cocktails.length > 0) return;
@@ -1285,6 +1398,7 @@ renderHome();
 renderList();
 renderInventory();
 renderMixerInventoryPicker();
+renderSurprisePickers();
 playHomeVideo();
 </script>
 </body>
