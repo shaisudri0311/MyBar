@@ -38,7 +38,7 @@
     color: var(--text);
     font-family: 'Assistant', sans-serif;
     min-height: 100vh;
-    padding-bottom: 92px;
+    padding-bottom: 98px;
     position: relative;
     background-color: var(--bg);
     /* bokeh bar-lights + warm wood-toned atmosphere, all self-contained (no external images) */
@@ -85,21 +85,32 @@
 
   nav.tabbar{
     position:fixed; bottom:0; left:0; right:0;
-    display:flex; justify-content:space-around;
+    display:flex; justify-content:flex-start;
+    overflow-x:auto;
+    scroll-snap-type:x proximity;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    gap:6px;
     background: rgba(23,17,12,.94);
     backdrop-filter: blur(12px);
     border-top: 1px solid var(--border);
-    padding: 8px 4px calc(8px + env(safe-area-inset-bottom,0px));
+    padding: 8px 14px calc(8px + env(safe-area-inset-bottom,0px));
     z-index: 50;
+    -webkit-mask-image: linear-gradient(to left, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
+    mask-image: linear-gradient(to left, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
   }
+  nav.tabbar::-webkit-scrollbar{ display:none; }
   nav.tabbar button{
     background:none; border:none; color: var(--text-dim);
-    display:flex; flex-direction:column; align-items:center; gap:2px;
-    font-family:'Assistant',sans-serif; font-size:10px; font-weight:600;
-    padding:6px 2px; cursor:pointer; flex:1; min-width:0;
-    transition: color .15s, transform .15s;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    font-family:'Assistant',sans-serif; font-size:12px; font-weight:600;
+    padding:7px 16px; cursor:pointer; flex:0 0 auto; white-space:nowrap;
+    scroll-snap-align:center;
+    border-radius:12px;
+    transition: color .15s, transform .15s, background .15s;
   }
-  nav.tabbar button .ico{font-size:18px; transition: transform .15s;}
+  nav.tabbar button.active{ background: var(--gold-soft); }
+  nav.tabbar button .ico{font-size:19px; transition: transform .15s;}
   nav.tabbar button.active{color: var(--gold-bright);}
   nav.tabbar button.active .ico{ transform: translateY(-2px); filter: drop-shadow(0 0 6px rgba(224,181,104,.6)); }
   nav.tabbar button:active{ transform: scale(.92); }
@@ -284,6 +295,9 @@
 
   <!-- ===== MIXER ===== -->
   <section class="tab" id="tab-mixer">
+    <div class="row" style="margin-bottom:14px;">
+      <button class="btn secondary small" id="btn-clear-mixer" style="width:auto;">🧹 נקה הכל</button>
+    </div>
     <div class="card">
       <h2>🧪 מיקסר</h2>
       <p class="muted">בחרו מה יש לכם במלאי ולחצו על "צור מתכון".</p>
@@ -313,6 +327,9 @@
       <div class="chip-suggestions" id="surprise-taste-picker"></div>
       <label style="margin-top:14px;">בסיס (אופציונלי)</label>
       <div class="chip-suggestions" id="surprise-base-picker"></div>
+      <label style="margin-top:14px;">סגירה (אופציונלי)</label>
+      <p class="muted" style="margin:2px 0 6px; font-size:11px;">מה מהמלאי שלכם (שוופס, ספרייט, מוגזים, מיץ טבעי, נורדיק וכו') תרצו שישמש לסגירת הכוס — אם בכלל.</p>
+      <div class="chip-suggestions" id="surprise-closer-picker"></div>
       <div class="row" style="margin-top:14px;">
         <button class="btn" id="btn-surprise">🎲 תפתיע אותי!</button>
       </div>
@@ -450,10 +467,13 @@ document.querySelectorAll('nav.tabbar button').forEach(btn=>{
     document.querySelectorAll('section.tab').forEach(s=>s.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(btn.dataset.tab).classList.add('active');
+    if(typeof btn.scrollIntoView === 'function'){
+      btn.scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' });
+    }
     if(btn.dataset.tab==='tab-home'){ renderHome(); playHomeVideo(); }
     if(btn.dataset.tab==='tab-list') renderList();
     if(btn.dataset.tab==='tab-favorites') renderFavorites();
-    if(btn.dataset.tab==='tab-mixer') renderMixerInventoryPicker();
+    if(btn.dataset.tab==='tab-mixer'){ renderMixerInventoryPicker(); renderSurpriseCloserPicker(); }
     if(btn.dataset.tab==='tab-inventory') renderInventory();
   });
 });
@@ -836,21 +856,21 @@ renderGeminiKeySection();
 
 // small built-in cocktail knowledge base for offline suggestions (all measurements in ml)
 const KB = [
- {name:'Old Fashioned', glass:'rocks', color:'#b5651d', base:'ויסקי', taste:'מריר מתוק', ing:['בורבון','ויסקי','סוכר','אנגוסטורה','תפוז'], instr:'ערבבו קובית סוכר עם 2 טפטופי אנגוסטורה וקצת מים בכוס. הוסיפו קרח ו-60 מ"ל ויסקי/בורבון, ערבבו וקשטו בקליפת תפוז.', tip:'טיפה של ליקר בננה או ליקר וישינק שחור מוסיפה עומק פירותי מעניין מעל הבורבון.', garnish:'קליפת תפוז שנשרפת קלות במצית מעל הכוס (orange twist flambé) — הארומה שנפתחת משנה את כל החוויה.'},
- {name:'Negroni', glass:'rocks', color:'#8b1e2b', base:"ג'ין", taste:'מריר מתוק', ing:["ג'ין",'קמפרי','ורמוט אדום'], instr:'30 מ"ל ג\'ין, 30 מ"ל קמפרי, 30 מ"ל ורמוט אדום. ערבבו עם קרח בכוס לואוול, קשטו בקליפת תפוז.', tip:'טיפה של ליקר תפוזים כהה (Grand Marnier) מוסיפה שכבת עומק מתחת למרירות.', garnish:'פרוסת תפוז דקה עם ציפורן (clove) תקוע בתוכה — גם ריח וגם מראה.'},
- {name:'Margarita', glass:'coupe', color:'#cbb64a', base:'טקילה', taste:'חמוץ מתוק', ing:['טקילה','ליים','טריפל סק','קוואנטרו'], instr:'60 מ"ל טקילה, 30 מ"ל קוואנטרו/טריפל סק, 30 מ"ל מיץ ליים. שייקר עם קרח, מסננים לכוס עם מלח על השפה.', tip:'טיפת ליקר פסיפלורה או מנגו הופכת אותה לגרסה טרופית מפתיעה.', garnish:'מלח צ\'ילי-ליים על חצי מהשפה בלבד — ניגוד בין לגימה חדה ללגימה עדינה.'},
- {name:'Daiquiri', glass:'coupe', color:'#e9dcae', base:'רום לבן', taste:'חמוץ מתוק', ing:['רום','ליים','סוכר'], instr:'60 מ"ל רום לבן, 30 מ"ל מיץ ליים, 22 מ"ל סירופ סוכר. שייקר חזק עם קרח, מסננים לכוס קוקטייל.', tip:'כפית ליקר מרסקינו מוסיפה רובד וישנה עדין שמעלה את המשקה לליגה אחרת.', garnish:'קליפת ליים דקה מגולגלת לצורת פרח, או פרח אכיל צף על הפנים.'},
- {name:'Mojito', glass:'tall', color:'#8fce7a', base:'רום לבן', taste:'חמוץ מתוק', ing:['רום','ליים','מנטה','סודה','סוכר'], instr:'מועכים עלי מנטה עם סוכר וליים בכוס. מוסיפים 60 מ"ל רום לבן, קרח, ומשלימים סודה. מערבבים בעדינות.', tip:'פירה תותים או מיץ פסיפלורה הופכים אותו לגרסה פירותית עשירה יותר.', garnish:'ענף מנטה גדול שמכים עליו קלות (לשחרור השמנים) + קש נייר צבעוני.'},
- {name:'Whiskey Sour', glass:'rocks', color:'#d98a3d', base:'ויסקי', taste:'חמוץ מתוק', ing:['בורבון','ויסקי','ליים','לימון','סוכר','חלבון'], instr:'60 מ"ל בורבון, 22 מ"ל מיץ לימון, 22 מ"ל סירופ סוכר (אופציה: חלבון ביצה). שייקר חזק, מסננים לכוס עם קרח.', tip:'טיפת ליקר וישנה שחורה מוסיפה מתיקות עמוקה שמאזנת את החמיצות.', garnish:'קצף חלבון עליון עם כמה טיפות אנגוסטורה בצורת לב או עיגולים — מראה של בר מקצועי.'},
- {name:'Espresso Martini', glass:'martini', color:'#3b2415', base:'וודקה', taste:'מריר מתוק', ing:['וודקה','קפה','אספרסו','ליקר קפה','קלואה'], instr:'45 מ"ל וודקה, 30 מ"ל ליקר קפה (קלואה), 30 מ"ל אספרסו קר. שייקר חזק עם קרח, מסננים לכוס מרטיני.', tip:'טיפת ליקר שוקולד מוסיפה עומק שיהפוך אותו לדסרט לכל דבר.', garnish:'3 פולי קפה שלמים צפים על הקצף — הקישוט הקלאסי שמשדר מקצועיות.'},
- {name:'Aperol Spritz', glass:'tall', color:'#e8792c', base:null, taste:'מריר מתוק', ing:['אפרול','פרוסקו','סודה'], instr:'90 מ"ל פרוסקו, 60 מ"ל אפרול, מעטו סודה. הכל על קרח בכוס גדולה, קשטו בפלח תפוז.', tip:'טיפת ליקר אלדרפלאור (St-Germain) מוסיפה רובד פרחוני עדין.', garnish:'גלגל תות טרי לצד פלח התפוז — צבעוניות שמצלמת מעולה.'},
- {name:'Gin Tonic', glass:'tall', color:'#cfe8e0', base:"ג'ין", taste:'מריר מתוק', ing:["ג'ין",'טוניק'], instr:'60 מ"ל ג\'ין על קרח, השלימו מים טוניק, קשטו בליים או מלפפון.', tip:'ג\'ין בוטני יותר (עם רוזמרין או פרחי היביסקוס) מעלה את המשקה לרמה אחרת לגמרי.', garnish:'ענף רוזמרין שרוף קלות במצית, או פרח אכיל צף — מראה ותמונה.'},
- {name:'Moscow Mule', glass:'tall', color:'#d9b45f', base:'וודקה', taste:'חמוץ מתוק', ing:['וודקה',"ג'ינג'ר ביר",'ליים'], instr:'60 מ"ל וודקה, מיץ מחצי ליים, השלימו ג\'ינג\'ר ביר על קרח. קשטו בענף מנטה.', tip:'טיפת ליקר ג\'ינג\'ר חריף מוסיפה עוקץ נוסף שמשלים את הג\'ינג\'ר ביר.', garnish:'כוס נחושת קפואה + מקלון קינמון לצד פלח ליים — קלאסי ומרשים.'},
- {name:'Mai Tai', glass:'tall', color:'#c9612f', base:'רום לבן', taste:'חמוץ מתוק', ing:['רום','ליים',"אורז'אט",'קוראסאו'], instr:'30 מ"ל רום כהה, 30 מ"ל רום לבן, 15 מ"ל קוראסאו, 15 מ"ל אורז\'אט, 22 מ"ל מיץ ליים. שייקר עם קרח, קשטו במנטה.', tip:'טיפת ליקר בננה כ-floater עדין מוסיפה רובד טרופי נוסף.', garnish:'ענף מנטה + פלח פיינאפל + שמשיית קוקטייל קלאסית — חוויית טיקי מלאה.'},
- {name:'Cosmopolitan', glass:'martini', color:'#e0507a', base:'וודקה', taste:'חמוץ מתוק', ing:['וודקה','טריפל סק','קוואנטרו','ליים','קרנברי'], instr:'45 מ"ל וודקה, 15 מ"ל קוואנטרו, 15 מ"ל מיץ ליים, 30 מ"ל מיץ חמוציות. שייקר, מסננים לכוס מרטיני.', tip:'ריסוס טיפה של ליקר תותים על פני המשקה מוסיף ניחוח מיד עם ההגשה.', garnish:'קליפת תפוז מסולסלת דקה — נגיעה של אלגנטיות שמשלימה את הצבע הוורוד.'},
- {name:'Manhattan', glass:'rocks', color:'#7a3420', base:'ויסקי', taste:'מריר מתוק', ing:['בורבון','ויסקי','ורמוט אדום','אנגוסטורה'], instr:'60 מ"ל ויסקי/בורבון, 30 מ"ל ורמוט אדום, 2 טפטופי אנגוסטורה. ערבבו עם קרח, מסננים, קשטו בדובדבן.', tip:'דובדבן מרסקינו איכותי (Luxardo) במקום דובדבן קוקטייל רגיל משנה את כל האיזון.', garnish:'דובדבן מרסקינו על קוקטייל-קיסם, לצד קליפת תפוז מסולסלת.'},
- {name:'Paloma', glass:'tall', color:'#e8637a', base:'טקילה', taste:'חמוץ מתוק', ing:['טקילה','ליים','גרפפרוט','סודה'], instr:'60 מ"ל טקילה, מיץ מחצי ליים, השלימו סודה גרפפרוט על קרח. מלח על השפה אופציונלי.', tip:'טיפת ליקר היביסקוס נותנת צבע ורוד עמוק וארומה פרחונית עדינה.', garnish:'מלח ורדים (chili-salt) על השפה + פרח היביסקוס אכיל — מרשים לתמונה.'},
- {name:'Pina Colada', glass:'tall', color:'#f0e2b6', base:'רום לבן', taste:'מתוק', ing:['רום','אננס','קוקוס'], instr:'60 מ"ל רום לבן, 60 מ"ל מיץ אננס, 30 מ"ל קרם קוקוס. בלנדר עם קרח עד קרמי, הגישו בכוס גבוהה.', tip:'טיפת רום כהה כ-floater עדין מעל הקצף מוסיפה עומק וארומה נוספת.', garnish:'פרוסת אננס + פרח טרופי + שמשיית קוקטייל — חוויית חוף מלאה.'}
+ {name:'Old Fashioned', glass:'rocks', color:'#b5651d', base:'ויסקי', taste:'מריר מתוק', ing:['בורבון','ויסקי','סוכר','אנגוסטורה','תפוז'], instr:'ערבבו קובית סוכר עם 2 טפטופי אנגוסטורה וקצת מים בכוס. הוסיפו קרח ו-60 מ"ל ויסקי/בורבון, ערבבו וקשטו בקליפת תפוז.', why:'הסוכר והאנגוסטורה מרככים את החריפות של הוויסקי לכדי לגימה עגולה ומאוזנת.', abv:'חזק', tip:'טיפה של ליקר בננה או ליקר וישינק שחור מוסיפה עומק פירותי מעניין מעל הבורבון.', garnish:'קליפת תפוז שנשרפת קלות במצית מעל הכוס (orange twist flambé) — הארומה שנפתחת משנה את כל החוויה.'},
+ {name:'Negroni', glass:'rocks', color:'#8b1e2b', base:"ג'ין", taste:'מריר מתוק', ing:["ג'ין",'קמפרי','ורמוט אדום'], instr:'30 מ"ל ג\'ין, 30 מ"ל קמפרי, 30 מ"ל ורמוט אדום. ערבבו עם קרח בכוס לואוול, קשטו בקליפת תפוז.', why:'המרירות של הקמפרי מתאזנת עם המתיקות של הוורמוט והבוטניקה של הג\'ין.', abv:'חזק', tip:'טיפה של ליקר תפוזים כהה (Grand Marnier) מוסיפה שכבת עומק מתחת למרירות.', garnish:'פרוסת תפוז דקה עם ציפורן (clove) תקוע בתוכה — גם ריח וגם מראה.'},
+ {name:'Margarita', glass:'coupe', color:'#cbb64a', base:'טקילה', taste:'חמוץ מתוק', ing:['טקילה','ליים','טריפל סק','קוואנטרו'], instr:'60 מ"ל טקילה, 30 מ"ל קוואנטרו/טריפל סק, 30 מ"ל מיץ ליים. שייקר עם קרח, מסננים לכוס עם מלח על השפה.', why:'החמיצות של הליים מאוזנת עם מתיקות הטריפל סק, והמלח על השפה מחדד את שניהם.', abv:'בינוני', tip:'טיפת ליקר פסיפלורה או מנגו הופכת אותה לגרסה טרופית מפתיעה.', garnish:'מלח צ\'ילי-ליים על חצי מהשפה בלבד — ניגוד בין לגימה חדה ללגימה עדינה.'},
+ {name:'Daiquiri', glass:'coupe', color:'#e9dcae', base:'רום לבן', taste:'חמוץ מתוק', ing:['רום','ליים','סוכר'], instr:'60 מ"ל רום לבן, 30 מ"ל מיץ ליים, 22 מ"ל סירופ סוכר. שייקר חזק עם קרח, מסננים לכוס קוקטייל.', why:'יחס קלאסי של חמוץ-מתוק-חזק (sour-sweet-strong) — הבסיס שממנו נגזרים רוב הקוקטיילים החמוצים.', abv:'בינוני', tip:'כפית ליקר מרסקינו מוסיפה רובד וישנה עדין שמעלה את המשקה לליגה אחרת.', garnish:'קליפת ליים דקה מגולגלת לצורת פרח, או פרח אכיל צף על הפנים.'},
+ {name:'Mojito', glass:'tall', color:'#8fce7a', base:'רום לבן', taste:'חמוץ מתוק', ing:['רום','ליים','מנטה','סודה','סוכר'], instr:'מועכים עלי מנטה עם סוכר וליים בכוס. מוסיפים 60 מ"ל רום לבן, קרח, ומשלימים סודה. מערבבים בעדינות.', why:'המנטה והסודה מקלילים את הרום, בזמן שהליים והסוכר בונים את המסגרת החמוצה-מתוקה הקלאסית.', abv:'קליל', tip:'פירה תותים או מיץ פסיפלורה הופכים אותו לגרסה פירותית עשירה יותר.', garnish:'ענף מנטה גדול שמכים עליו קלות (לשחרור השמנים) + קש נייר צבעוני.'},
+ {name:'Whiskey Sour', glass:'rocks', color:'#d98a3d', base:'ויסקי', taste:'חמוץ מתוק', ing:['בורבון','ויסקי','ליים','לימון','סוכר','חלבון'], instr:'60 מ"ל בורבון, 22 מ"ל מיץ לימון, 22 מ"ל סירופ סוכר (אופציה: חלבון ביצה). שייקר חזק, מסננים לכוס עם קרח.', why:'חמיצות הלימון וההקצפה עם החלבון בונות מרקם קרמי שמאזן את חוזק הבורבון.', abv:'בינוני', tip:'טיפת ליקר וישנה שחורה מוסיפה מתיקות עמוקה שמאזנת את החמיצות.', garnish:'קצף חלבון עליון עם כמה טיפות אנגוסטורה בצורת לב או עיגולים — מראה של בר מקצועי.'},
+ {name:'Espresso Martini', glass:'martini', color:'#3b2415', base:'וודקה', taste:'מריר מתוק', ing:['וודקה','קפה','אספרסו','ליקר קפה','קלואה'], instr:'45 מ"ל וודקה, 30 מ"ל ליקר קפה (קלואה), 30 מ"ל אספרסו קר. שייקר חזק עם קרח, מסננים לכוס מרטיני.', why:'מרירות הקפה מתמזגת עם מתיקות ליקר הקפה, בזמן שהאלכוהול שומר על חדות.', abv:'חזק', tip:'טיפת ליקר שוקולד מוסיפה עומק שיהפוך אותו לדסרט לכל דבר.', garnish:'3 פולי קפה שלמים צפים על הקצף — הקישוט הקלאסי שמשדר מקצועיות.'},
+ {name:'Aperol Spritz', glass:'tall', color:'#e8792c', base:null, taste:'מריר מתוק', ing:['אפרול','פרוסקו','סודה'], instr:'90 מ"ל פרוסקו, 60 מ"ל אפרול, מעטו סודה. הכל על קרח בכוס גדולה, קשטו בפלח תפוז.', why:'המרירות העדינה של האפרול נפגשת עם הבועות המתוקות של הפרוסקו לשילוב קליל ומרענן.', abv:'קליל', tip:'טיפת ליקר אלדרפלאור (St-Germain) מוסיפה רובד פרחוני עדין.', garnish:'גלגל תות טרי לצד פלח התפוז — צבעוניות שמצלמת מעולה.'},
+ {name:'Gin Tonic', glass:'tall', color:'#cfe8e0', base:"ג'ין", taste:'מריר מתוק', ing:["ג'ין",'טוניק'], instr:'60 מ"ל ג\'ין על קרח, השלימו מים טוניק, קשטו בליים או מלפפון.', why:'מרירות הקווינין בטוניק מתכתבת עם הבוטניקה של הג\'ין ליצירת שילוב מרענן ומאוזן.', abv:'בינוני', tip:'ג\'ין בוטני יותר (עם רוזמרין או פרחי היביסקוס) מעלה את המשקה לרמה אחרת לגמרי.', garnish:'ענף רוזמרין שרוף קלות במצית, או פרח אכיל צף — מראה ותמונה.'},
+ {name:'Moscow Mule', glass:'tall', color:'#d9b45f', base:'וודקה', taste:'חמוץ מתוק', ing:['וודקה',"ג'ינג'ר ביר",'ליים'], instr:'60 מ"ל וודקה, מיץ מחצי ליים, השלימו ג\'ינג\'ר ביר על קרח. קשטו בענף מנטה.', why:'החריפות של הג\'ינג\'ר ביר וחמיצות הליים מסתירות בעדינות את חוזק הוודקה.', abv:'בינוני', tip:'טיפת ליקר ג\'ינג\'ר חריף מוסיפה עוקץ נוסף שמשלים את הג\'ינג\'ר ביר.', garnish:'כוס נחושת קפואה + מקלון קינמון לצד פלח ליים — קלאסי ומרשים.'},
+ {name:'Mai Tai', glass:'tall', color:'#c9612f', base:'רום לבן', taste:'חמוץ מתוק', ing:['רום','ליים',"אורז'אט",'קוראסאו'], instr:'30 מ"ל רום כהה, 30 מ"ל רום לבן, 15 מ"ל קוראסאו, 15 מ"ל אורז\'אט, 22 מ"ל מיץ ליים. שייקר עם קרח, קשטו במנטה.', why:'המתיקות של האורז\'אט והקוראסאו מרככת את החוזק הכפול של שני סוגי הרום.', abv:'חזק', tip:'טיפת ליקר בננה כ-floater עדין מוסיפה רובד טרופי נוסף.', garnish:'ענף מנטה + פלח פיינאפל + שמשיית קוקטייל קלאסית — חוויית טיקי מלאה.'},
+ {name:'Cosmopolitan', glass:'martini', color:'#e0507a', base:'וודקה', taste:'חמוץ מתוק', ing:['וודקה','טריפל סק','קוואנטרו','ליים','קרנברי'], instr:'45 מ"ל וודקה, 15 מ"ל קוואנטרו, 15 מ"ל מיץ ליים, 30 מ"ל מיץ חמוציות. שייקר, מסננים לכוס מרטיני.', why:'חמיצות הליים והחמוציות מאזנת את מתיקות הטריפל סק לשילוב חמוץ-מתוק אלגנטי.', abv:'בינוני', tip:'ריסוס טיפה של ליקר תותים על פני המשקה מוסיף ניחוח מיד עם ההגשה.', garnish:'קליפת תפוז מסולסלת דקה — נגיעה של אלגנטיות שמשלימה את הצבע הוורוד.'},
+ {name:'Manhattan', glass:'rocks', color:'#7a3420', base:'ויסקי', taste:'מריר מתוק', ing:['בורבון','ויסקי','ורמוט אדום','אנגוסטורה'], instr:'60 מ"ל ויסקי/בורבון, 30 מ"ל ורמוט אדום, 2 טפטופי אנגוסטורה. ערבבו עם קרח, מסננים, קשטו בדובדבן.', why:'מתיקות הוורמוט האדום עם נגיעת האנגוסטורה מרככת את חוזק הוויסקי לשתייה חלקה.', abv:'חזק', tip:'דובדבן מרסקינו איכותי (Luxardo) במקום דובדבן קוקטייל רגיל משנה את כל האיזון.', garnish:'דובדבן מרסקינו על קוקטייל-קיסם, לצד קליפת תפוז מסולסלת.'},
+ {name:'Paloma', glass:'tall', color:'#e8637a', base:'טקילה', taste:'חמוץ מתוק', ing:['טקילה','ליים','גרפפרוט','סודה'], instr:'60 מ"ל טקילה, מיץ מחצי ליים, השלימו סודה גרפפרוט על קרח. מלח על השפה אופציונלי.', why:'החמיצות המרירה של הגרפפרוט מתאזנת עם הטקילה והסודה לשילוב מרענן ולא כבד.', abv:'קליל', tip:'טיפת ליקר היביסקוס נותנת צבע ורוד עמוק וארומה פרחונית עדינה.', garnish:'מלח ורדים (chili-salt) על השפה + פרח היביסקוס אכיל — מרשים לתמונה.'},
+ {name:'Pina Colada', glass:'tall', color:'#f0e2b6', base:'רום לבן', taste:'מתוק', ing:['רום','אננס','קוקוס'], instr:'60 מ"ל רום לבן, 60 מ"ל מיץ אננס, 30 מ"ל קרם קוקוס. בלנדר עם קרח עד קרמי, הגישו בכוס גבוהה.', why:'המתיקות הקרמית של הקוקוס והאננס מסתירה כליל את נוכחות הרום, לשתייה חלקה ונעימה.', abv:'בינוני', tip:'טיפת רום כהה כ-floater עדין מעל הקצף מוסיפה עומק וארומה נוספת.', garnish:'פרוסת אננס + פרח טרופי + שמשיית קוקטייל — חוויית חוף מלאה.'}
 ];
 
 /* ---- simple original glass illustrations (self-contained SVG, no external images) ---- */
@@ -942,26 +962,35 @@ function localSuggest(have, guestCount, prefs){
   const haveLower = have.map(x=>x.toLowerCase());
   const wantBase = prefs?.base || null;
   const wantTaste = prefs?.taste || null;
+  const wantCloser = prefs?.closer || null;
   let best=null, bestScore=-1;
   KB.forEach(c=>{
     let score=0;
     c.ing.forEach(i=>{ if(haveLower.some(h=>i.includes(h)||h.includes(i))) score++; });
     if(wantBase && c.base === wantBase) score += 8;
     if(wantTaste && c.taste === wantTaste) score += 8;
+    if(wantCloser && c.ing.some(i=>i.includes(wantCloser)||wantCloser.includes(i))) score += 4;
     if(score>bestScore){ bestScore=score; best=c; }
   });
   if(!best) best = KB[0];
   const factor = guestCount || 1;
   const recipe = scaleMlAmounts(best.instr, factor);
-  const instr = `${recipe}\n\nטיפ +1:\n${best.tip}\n\nטיפ הגשה:\n${best.garnish}`;
+  // Be upfront if the picked cocktail needs something not currently in the
+  // user's list — the same anti-hallucination spirit as the AI prompt: never
+  // silently assume an ingredient they didn't say they have.
+  const missing = best.ing.filter(i => !haveLower.some(h => i.includes(h) || h.includes(i)));
+  const missingNote = missing.length ? `⚠️ שימו לב: המתכון הזה משתמש גם ב-${missing.join(', ')}, שלא סימנתם כקיימים.\n\n` : '';
+  const instr = `${recipe}\n\n${missingNote}למה זה עובד:\n${best.why}\n\nעוצמה: ${best.abv}\n\nטיפ +1:\n${best.tip}\n\nטיפ הגשה:\n${best.garnish}`;
   return { name: best.name, ing: best.ing, instr };
 }
 
 /* ========================= SURPRISE ME ========================= */
-const TASTE_OPTIONS = ['חמוץ', 'מתוק', 'חמוץ מתוק', 'מריר מתוק'];
+const TASTE_OPTIONS = ['חמוץ', 'מתוק', 'חמוץ מתוק', 'מריר מתוק', 'חמצמץ', 'פירותי', 'מרענן', 'חריף', 'קרמי'];
 const BASE_OPTIONS = ['וודקה', "ג'ין", 'רום לבן', 'עראק', 'ויסקי', 'טקילה'];
+const CLOSER_KEYWORDS = ['סודה','טוניק','קולה','ספרייט','שוופס','מיץ',"ג'ינג'ר ביר",'פרוסקו','נורדיק','מוגז'];
 let surpriseTaste = null;
 let surpriseBase = null;
+let surpriseCloser = null;
 
 function renderSingleSelectPicker(containerId, options, currentValue, onPick){
   const box = document.getElementById(containerId);
@@ -975,9 +1004,28 @@ function renderSingleSelectPicker(containerId, options, currentValue, onPick){
     });
   });
 }
+function getCloserOptionsFromInventory(){
+  ensureInventoryDefaults();
+  return DB.inventory
+    .filter(i => i.status !== 'missing')
+    .filter(i => CLOSER_KEYWORDS.some(k => i.name.includes(k)))
+    .map(i => i.name);
+}
+function renderSurpriseCloserPicker(){
+  const options = getCloserOptionsFromInventory();
+  const box = document.getElementById('surprise-closer-picker');
+  if(options.length === 0){
+    box.innerHTML = `<p class="muted" style="margin:0;">אין עדיין פריטי סגירה (סודה/טוניק/מיץ וכו') מסומנים כקיימים במלאי.</p>`;
+    if(surpriseCloser) surpriseCloser = null;
+    return;
+  }
+  if(surpriseCloser && !options.includes(surpriseCloser)) surpriseCloser = null;
+  renderSingleSelectPicker('surprise-closer-picker', options, surpriseCloser, (v)=>{ surpriseCloser = v; renderSurpriseCloserPicker(); });
+}
 function renderSurprisePickers(){
   renderSingleSelectPicker('surprise-taste-picker', TASTE_OPTIONS, surpriseTaste, (v)=>{ surpriseTaste = v; renderSurprisePickers(); });
   renderSingleSelectPicker('surprise-base-picker', BASE_OPTIONS, surpriseBase, (v)=>{ surpriseBase = v; renderSurprisePickers(); });
+  renderSurpriseCloserPicker();
 }
 function getAvailableInventoryNames(){
   ensureInventoryDefaults();
@@ -997,7 +1045,7 @@ document.getElementById('btn-surprise').addEventListener('click', async ()=>{
   const resultBox = document.getElementById('mixer-result');
   resultBox.innerHTML = `<div class="card">🎲 מחפשים את הקוקטייל הטוב ביותר...</div>`;
 
-  const prefs = { base: surpriseBase, taste: surpriseTaste };
+  const prefs = { base: surpriseBase, taste: surpriseTaste, closer: surpriseCloser };
 
   if(DB.geminiKey){
     try{
@@ -1011,6 +1059,20 @@ document.getElementById('btn-surprise').addEventListener('click', async ()=>{
   }
   const local = localSuggest(available, guestCount, prefs);
   renderMixerResult(local.name, local.ing, local.instr, false, guestCount);
+});
+
+document.getElementById('btn-clear-mixer').addEventListener('click', ()=>{
+  mixerIngredients = [];
+  document.getElementById('mixer-ingredient-field').value = '';
+  document.getElementById('mixer-guest-count').value = 1;
+  surpriseTaste = null;
+  surpriseBase = null;
+  surpriseCloser = null;
+  renderChips();
+  renderMixerInventoryPicker();
+  renderSurprisePickers();
+  document.getElementById('mixer-result').innerHTML = '';
+  toast('הכל נוקה 🧹');
 });
 
 let currentMixerSuggestion = null;
@@ -1131,8 +1193,41 @@ async function callGemini(ingredients, guestCount, prefs){
   const constraints = [];
   if(prefs?.base) constraints.push(`הקוקטייל חייב להתבסס על ${prefs.base} כמשקה הבסיס`);
   if(prefs?.taste) constraints.push(`כיוון הטעם המבוקש הוא: ${prefs.taste}`);
+  if(prefs?.closer) constraints.push(`אם מתאים למתכון, השתמשו ב"${prefs.closer}" כמרכיב שסוגר/ממלא את הכוס`);
+  const strengthHint = gc > 4
+    ? `מכיוון שזה עבור ${gc} סועדים, הטו במידת האפשר לכיוון עוצמה קלילה-בינונית שמתאימה לערב ארוך עם הרבה כוסות, אלא אם המרכיבים או ההקשר מכריחים אחרת.`
+    : `מכיוון שזה למספר קטן של סועדים, אפשר גם להציע כיוון עוצמתי יותר, אם זה מתאים למרכיבים.`;
   const constraintText = constraints.length ? ` ${constraints.join('. ')}.` : '';
-  const prompt = `אני בר-מן חובב ויש לי את המרכיבים הבאים: ${ingredients.join(', ')}. הצע לי קוקטייל אחד מנצח שאפשר להכין מהם (אפשר להניח שיש גם קרח, סוכר, מים וסודה בסיסיים), בכמות המתאימה בדיוק ל-${gc} סועדים (הכפילו את הכמויות בהתאם למספר הסועדים).${constraintText} כל הכמויות חייבות להיות במיליליטר (מ"ל) בלבד, לעולם לא באונקיות. בנוסף, תמיד הוסיפו שני דברים: (1) "טיפ +1" — מרכיב אחד ספציפי שהייתי יכול להוסיף כדי לשדרג את הקוקטייל לרמה הבאה, גם אם אין לי אותו כרגע; (2) "טיפ הגשה" — טיפ קישוט או הגשה קונקרטי (כמו רימור על שפת הכוס, פרח אכיל, ענף מנטה, גרניש מיוחד) שיקח את המשקה לשלב הבא ויזואלית. החזר תשובה בפורמט הבא בדיוק, בעברית, בלי שום טקסט נוסף:\nשם: <שם הקוקטייל>\nמתכון:\n<רשימת מרכיבים וכמויות במ"ל עבור ${gc} סועדים, שורה לכל מרכיב>\n\nהוראות הכנה:\n<הוראות קצרות וברורות>\n\nטיפ +1:\n<המרכיב שישדרג את הקוקטייל, עם הסבר קצר>\n\nטיפ הגשה:\n<טיפ הגשה/קישוט קונקרטי>`;
+  const prompt = `אני בר-מן חובב ויש לי את המרכיבים הבאים: ${ingredients.join(', ')}. הצע לי קוקטייל אחד מנצח שאפשר להכין מהם, בכמות המתאימה בדיוק ל-${gc} סועדים (הכפילו את הכמויות בהתאם למספר הסועדים).${constraintText}
+
+חשוב: השתמשו במתכון עצמו רק במרכיבים מהרשימה שסיפקתי, בתוספת דברים בסיסיים בלבד שאפשר להניח שיש (קרח, סוכר, מים, סודה רגילה). אם ממש חייבים מרכיב נוסף שלא ברשימה כדי שהמתכון יעבוד, ציינו זאת בבירור כ"תחליף נדרש" בתוך ההוראות — אל תניחו בשקט שיש לי אותו. ${strengthHint}
+
+כל הכמויות חייבות להיות במיליליטר (מ"ל) בלבד, לעולם לא באונקיות.
+
+תמיד הוסיפו את כל הדברים הבאים:
+(1) "למה זה עובד" — שורה אחת שמסבירה את ההיגיון של הצירוף (למשל איזו חמיצות מאזנת איזו מרירות/מתיקות), כדי שאלמד קצת על טעמים ולא רק אכין מתכון.
+(2) "עוצמה" — דרגו את המשקה כ"קליל" / "בינוני" / "חזק".
+(3) "טיפ +1" — מרכיב אחד ספציפי שהייתי יכול להוסיף כדי לשדרג את הקוקטייל לרמה הבאה, גם אם אין לי אותו כרגע (זה שונה מהאיסור למעלה — כאן זה מפורש כשדרוג אופציונלי, לא חלק מהמתכון הבסיסי).
+(4) "טיפ הגשה" — טיפ קישוט או הגשה קונקרטי (כמו רימור על שפת הכוס, פרח אכיל, ענף מנטה, גרניש מיוחד) שיקח את המשקה לשלב הבא ויזואלית.
+
+החזר תשובה בפורמט הבא בדיוק, בעברית, בלי שום טקסט נוסף:
+שם: <שם הקוקטייל>
+מתכון:
+<רשימת מרכיבים וכמויות במ"ל עבור ${gc} סועדים, שורה לכל מרכיב>
+
+הוראות הכנה:
+<הוראות קצרות וברורות, כולל "תחליף נדרש" אם צריך>
+
+למה זה עובד:
+<שורה אחת>
+
+עוצמה: <קליל / בינוני / חזק>
+
+טיפ +1:
+<המרכיב שישדרג את הקוקטייל, עם הסבר קצר>
+
+טיפ הגשה:
+<טיפ הגשה/קישוט קונקרטי>`;
 
   const candidates = await getWorkingGeminiModels(key);
 
